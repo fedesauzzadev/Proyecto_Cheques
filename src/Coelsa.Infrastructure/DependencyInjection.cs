@@ -41,7 +41,7 @@ public static class DependencyInjection
     /// Acepta tanto el formato nativo de StackExchange.Redis (host:port,password=...)
     /// como URLs de proveedores cloud (redis:// / rediss://user:pass@host:port).
     /// </summary>
-    private static string NormalizarCadenaRedis(string cadena)
+    public static string NormalizarCadenaRedis(string cadena)
     {
         if (!Uri.TryCreate(cadena, UriKind.Absolute, out var uri) ||
             string.IsNullOrEmpty(uri.Host) ||

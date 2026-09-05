@@ -72,13 +72,18 @@ builder.Services.AddRateLimiter(options =>
 var postgresConnectionString = builder.Configuration.GetConnectionString("Postgres")
     ?? throw new InvalidOperationException("Falta la cadena de conexión 'Postgres'.");
 
+// La cadena de Redis se normaliza (el health check no acepta URLs rediss:// de proveedores cloud)
+// y usa abortConnect=false para no tirar /health si Redis está caído (fail-open, RNF-13).
+var redisConnectionString = Coelsa.Infrastructure.DependencyInjection.NormalizarCadenaRedis(
+    builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379");
+
 builder.Services.AddHealthChecks()
     .AddNpgSql(
         postgresConnectionString,
         name: "postgres",
         tags: ["ready"])
     .AddRedis(
-        builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379",
+        $"{redisConnectionString},abortConnect=false",
         name: "redis",
         tags: ["ready"]);
 
