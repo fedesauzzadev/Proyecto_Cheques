@@ -20,13 +20,13 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore
-        run: dotnet restore Coelsa.sln
+        run: dotnet restore Coelsa/Coelsa.sln
 
       - name: Build
-        run: dotnet build Coelsa.sln --no-restore --configuration Release
+        run: dotnet build Coelsa/Coelsa.sln --no-restore --configuration Release
 
       - name: Test
-        run: dotnet test Coelsa.sln --no-build --configuration Release --logger "console;verbosity=normal"
+        run: dotnet test Coelsa/Coelsa.sln --no-build --configuration Release --logger "console;verbosity=normal"
 
   docker:
     name: Imagen Docker
@@ -36,4 +36,4 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build de la imagen
-        run: docker build -t coelsa-api:ci .
+        run: docker build -t coelsa-api:ci Coelsa

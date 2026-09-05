@@ -1,10 +1,12 @@
 # Blueprint de Render: https://render.com/docs/blueprint-spec
+# Monorepo: el backend vive en Coelsa/ (rootDir), el front en Front_Coelsa/.
 # Produccion sigue la rama main, desarrollo sigue la rama develop.
 # Los secretos (sync: false) se completan en el dashboard al aplicar el blueprint.
 services:
   - type: web
     name: coelsa-api-prod
     runtime: docker
+    rootDir: Coelsa
     plan: free
     branch: main
     autoDeploy: true
@@ -26,6 +28,7 @@ services:
   - type: web
     name: coelsa-api-dev
     runtime: docker
+    rootDir: Coelsa
     plan: free
     autoDeploy: true
     branch: develop

@@ -1,5 +1,15 @@
 # Despliegue: Desarrollo y Producción
 
+## Estructura del monorepo
+
+```
+Proyecto_Cheques/
+├── Coelsa/          # Backend .NET (API, tests, Dockerfile, render.yaml lo referencia con rootDir)
+└── Front_Coelsa/    # Frontend (por crear)
+```
+
+> El backend se construye desde `Coelsa/` (ver `rootDir` en `render.yaml` y los paths en `.github/workflows/ci.yml`).
+
 ## Arquitectura
 
 ```
