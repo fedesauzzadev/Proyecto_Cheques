@@ -20,9 +20,10 @@ Postgres: Neon (gratis)     Redis: Upstash (gratis)
 
 1. Entrar a https://neon.com → **Sign Up** (gratis, sin tarjeta).
 2. **Create project** → nombre `coelsa` → región cualquiera.
-3. Copiar la **connection string** del dashboard, algo como:
+3. Del dashboard copiar host, usuario, password y base, y armar la cadena en **formato Npgsql**
+   (la URI `postgresql://...` que muestra Neon **no** es aceptada por Npgsql/EF):
    ```
-   postgresql://neondb_owner:PASSWORD@ep-xxx-xxx.aws.neon.tech/neondb?sslmode=require
+   Host=ep-xxx-xxx-pooler.aws.neon.tech;Port=5432;Database=neondb;Username=neondb_owner;Password=PASSWORD;SSL Mode=Require
    ```
 
 > Sugerido: crear **dos proyectos** (`coelsa-prod` y `coelsa-dev`) para aislar los datos de cada ambiente.
@@ -45,7 +46,7 @@ Postgres: Neon (gratis)     Redis: Upstash (gratis)
 2. **New +** → **Blueprint** → autorizar y elegir el repositorio de este proyecto.
 3. Render lee el `render.yaml` y detecta los dos servicios (`coelsa-api-prod` y `coelsa-api-dev`).
 4. Pedirá completar los secretos (`sync: false`) — pegar:
-   - `ConnectionStrings__Postgres`: la URL de Neon del paso 1.
+   - `ConnectionStrings__Postgres`: la cadena de Neon del paso 1 (formato `Host=...;Username=...`).
    - `ConnectionStrings__Redis`: la cadena de Upstash del paso 2.
 5. **Apply** → Render buildea el Dockerfile y despliega (~5 min la primera vez).
 6. Al terminar, la API queda pública:
