@@ -24,16 +24,17 @@ Los términos de negocio (cheque físico, echeq, CMC7, IDECHEQ, CUD, librador,
 beneficiario, diferimiento, motivo de rechazo) están definidos en la
 sección 2 del SPEC del backend y no se repiten acá.
 
-| Término | Definición |
-|---|---|
-| **Estado de servidor** | Datos que viven en la API (instrumentos, totales) y se cachean en el cliente vía TanStack Query. |
-| **Puerto (front)** | Interfaz de TypeScript que declara una capacidad (ej: `IPuertoInstrumentos`); el componente la consume, la infraestructura la implementa. |
-| **Invalidación** | Marcar queries afectadas tras una escritura para que TanStack Query las recargue (espejo del versionado de caché Redis del backend). |
-| **Idempotency-Key de intento** | GUID generado al montar un formulario de creación; se reusa en reintentos del mismo intento. |
+| Término                        | Definición                                                                                                                                |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Estado de servidor**         | Datos que viven en la API (instrumentos, totales) y se cachean en el cliente vía TanStack Query.                                          |
+| **Puerto (front)**             | Interfaz de TypeScript que declara una capacidad (ej: `IPuertoInstrumentos`); el componente la consume, la infraestructura la implementa. |
+| **Invalidación**               | Marcar queries afectadas tras una escritura para que TanStack Query las recargue (espejo del versionado de caché Redis del backend).      |
+| **Idempotency-Key de intento** | GUID generado al montar un formulario de creación; se reusa en reintentos del mismo intento.                                              |
 
 ## 3. Requisitos funcionales
 
 ### RF-F01 — Consulta por CUIT/CUIL, separada por tipo, paginada
+
 - Vista principal con **pestañas Cheques / Echeqs** (nunca mezclados, espejo
   de RF-03 del backend).
 - Input de CUIT con **validación módulo 11 client-side** (mismo algoritmo que
@@ -48,6 +49,7 @@ sección 2 del SPEC del backend y no se repiten acá.
   creación.
 
 ### RF-F02 — Detalle individual por identificador de negocio
+
 - Navegación desde el listado y búsqueda directa por **CMC7** (30 dígitos)
   o **IDECHEQ**.
 - Para cheques físicos se muestra el **desglose del CMC7** (banco, sucursal,
@@ -55,17 +57,19 @@ sección 2 del SPEC del backend y no se repiten acá.
 - `404` → pantalla/mensaje "instrumento inexistente" con volver al listado.
 
 ### RF-F03 — Creación de instrumentos (con Strategy)
+
 - Formularios por tipo, gobernados por una **estrategia de creación** por
   tipo (patrón Strategy, espejo de RF-01): campos, labels, validaciones y
   request builder viven en `estrategiaChequeFisico.ts` /
   `estrategiaEcheq.ts` detrás de una interfaz común.
 - Validación client-side espejo del backend: CUIT módulo 11, CMC7 de 30
   dígitos con checksum de banco, CUD hex-64, monto > 0, `fechaEmision ≤
-  hoy+1`, `fechaDiferimiento ≥ fechaEmision` si viene.
+hoy+1`, `fechaDiferimiento ≥ fechaEmision` si viene.
 - Los errores del server (400/409) se muestran junto al campo
   correspondiente cuando el detalle lo permite, o como error general.
 
 ### RF-F04 — Idempotencia en creación
+
 - Al montar el formulario se genera un **GUID de intento**; viaja como
   header `Idempotency-Key` en el POST.
 - Los reintentos automáticos/manuales del mismo intento reusan el GUID.
@@ -74,6 +78,7 @@ sección 2 del SPEC del backend y no se repiten acá.
 - `409 Conflict` (CMC7/CUD duplicado con otra key) → mensaje diferenciado.
 
 ### RF-F05 — Cambio de estado gobernado por la máquina de estados
+
 - La UI **solo ofrece acciones de transiciones válidas** según el estado
   actual (espejo de RF-05): un cheque `Compensado` no ofrece "Rechazar".
 - `Rechazado` exige seleccionar **motivo de rechazo** (códigos 11/12/21/25);
@@ -83,11 +88,13 @@ sección 2 del SPEC del backend y no se repiten acá.
   detalle del server y refresh del recurso.
 
 ### RF-F06 — Baja lógica con confirmación
+
 - `DELETE` precedido por modal de confirmación que muestra identificador,
   monto y la aclaración de que el instrumento deja de listarse.
 - `204` → toast + invalidación + vuelta al listado; `404` → mensaje.
 
 ### RF-F07 — Manejo uniforme de errores y resiliencia
+
 - **Un único parser** de respuestas `application/problem+json` (RFC 7807)
   mapea `title`/`detail` a mensajes en español (espejo de RNF-07).
 - `429` → el cliente HTTP **respeta `Retry-After`** y reintenta una vez
@@ -97,26 +104,27 @@ sección 2 del SPEC del backend y no se repiten acá.
   perder el contexto (la query queda en error y se puede reintentar).
 
 ### RF-F08 — Indicador de salud del backend
+
 - Badge en el header que consulta `GET /health` (espejo RF-07) con
   refresco periódico.
 - Estados: saludable (verde), degradado/erróneo (ámbar/rojo) con tooltip.
 
 ## 4. Requisitos no funcionales
 
-| ID | Requisito |
-|---|---|
-| RNF-F01 | React 19 + **TypeScript strict** + Vite; Node 20 LTS. |
-| RNF-F02 | Arquitectura hexagonal espejo: `domain`, `application` (puertos + hooks), `infrastructure` (adaptadores HTTP), `presentation`. |
-| RNF-F03 | **TanStack Query** como único estado de servidor (cache, paginación, invalidación); sin estado global en v1. |
-| RNF-F04 | React Router v7 (modo declarativo). |
-| RNF-F05 | Tailwind CSS + shadcn/ui; tokens de diseño; responsivo; accesibilidad AA básica (labels, foco visible, contraste, `aria-` en tablas). |
-| RNF-F06 | Ubiquitous language en **español** (espejo de RNF-09): dominio y casos de uso nombrados como en el backend. |
+| ID      | Requisito                                                                                                                                          |
+| ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| RNF-F01 | React 19 + **TypeScript strict** + Vite; Node 20 LTS.                                                                                              |
+| RNF-F02 | Arquitectura hexagonal espejo: `domain`, `application` (puertos + hooks), `infrastructure` (adaptadores HTTP), `presentation`.                     |
+| RNF-F03 | **TanStack Query** como único estado de servidor (cache, paginación, invalidación); sin estado global en v1.                                       |
+| RNF-F04 | React Router v7 (modo declarativo).                                                                                                                |
+| RNF-F05 | Tailwind CSS + shadcn/ui; tokens de diseño; responsivo; accesibilidad AA básica (labels, foco visible, contraste, `aria-` en tablas).              |
+| RNF-F06 | Ubiquitous language en **español** (espejo de RNF-09): dominio y casos de uso nombrados como en el backend.                                        |
 | RNF-F07 | Vitest + React Testing Library: dominio (CUIT, CMC7, transiciones) con los **mismos casos que los tests del backend**; smoke de componentes clave. |
-| RNF-F08 | ESLint + Prettier; CI propio en GitHub Actions (lint + test + build), disparado solo por cambios en `Front_Coelsa/**` (paths filter). |
-| RNF-F09 | Despliegue como **static site en Render** (mismo `render.yaml` del monorepo, `staticPublishPath: dist`). |
-| RNF-F10 | Cliente HTTP propio sobre `fetch` con timeout; sin axios ni dependencias de red extra. |
-| RNF-F11 | Configuración por ambiente con `VITE_API_URL` (dev → API dev, prod → API prod); en desarrollo local, proxy de Vite para evitar CORS. |
-| RNF-F12 | Code splitting por ruta (lazy) y assets con hash; presupuesto: bundle inicial < 250 KB gzip. |
+| RNF-F08 | ESLint + Prettier; CI propio en GitHub Actions (lint + test + build), disparado solo por cambios en `Front_Coelsa/**` (paths filter).              |
+| RNF-F09 | Despliegue como **static site en Render** (mismo `render.yaml` del monorepo, `staticPublishPath: dist`).                                           |
+| RNF-F10 | Cliente HTTP propio sobre `fetch` con timeout; sin axios ni dependencias de red extra.                                                             |
+| RNF-F11 | Configuración por ambiente con `VITE_API_URL` (dev → API dev, prod → API prod); en desarrollo local, proxy de Vite para evitar CORS.               |
+| RNF-F12 | Code splitting por ruta (lazy) y assets con hash; presupuesto: bundle inicial < 250 KB gzip.                                                       |
 
 ## 5. Modelo de dominio del front
 
@@ -136,12 +144,12 @@ interface PagedResponse<T>{ items: T[]; page: number; pageSize: number; totalCou
 
 Módulos puros de dominio (sin dependencias, testeados con Vitest):
 
-| Módulo | Responsabilidad | Espejo en el backend |
-|---|---|---|
-| `validadorCuit.ts` | Validación módulo 11 (mismo algoritmo y casos de test). | `ValidadorCuit.cs` |
-| `desgloseCmc7.ts` | Parse de banco/sucursal/CP/número/cuenta desde 30 dígitos. | Desglose derivado en `Mapeadores.cs` |
-| `transiciones.ts` | Máquina de estados: transiciones válidas y si exigen motivo. | `TransicionesEstado.cs` |
-| `estrategias/*.ts` | Strategy por tipo para formularios y requests. | `Estrategias/*` |
+| Módulo             | Responsabilidad                                              | Espejo en el backend                 |
+| ------------------ | ------------------------------------------------------------ | ------------------------------------ |
+| `validadorCuit.ts` | Validación módulo 11 (mismo algoritmo y casos de test).      | `ValidadorCuit.cs`                   |
+| `desgloseCmc7.ts`  | Parse de banco/sucursal/CP/número/cuenta desde 30 dígitos.   | Desglose derivado en `Mapeadores.cs` |
+| `transiciones.ts`  | Máquina de estados: transiciones válidas y si exigen motivo. | `TransicionesEstado.cs`              |
+| `estrategias/*.ts` | Strategy por tipo para formularios y requests.               | `Estrategias/*`                      |
 
 Máquina de estados (idéntica a la del backend):
 
@@ -154,18 +162,18 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 
 ## 6. Mapa de patrones backend ↔ front
 
-| Patrón del backend (SPEC) | Contraparte en el front | Sección |
-|---|---|---|
-| Strategy de creación (RF-01) | Estrategia por tipo para formularios y requests | RF-F03 |
-| Idempotencia con `Idempotency-Key` (RF-02) | GUID de intento generado en el form y reusado en reintentos | RF-F04 |
-| Envelope paginado (RF-03) | Tabla paginada con TanStack Query + `keepPreviousData` | RF-F01 |
-| Máquina de estados (RF-05) | Acciones condicionadas por `transiciones.ts` | RF-F05 |
-| Cache Redis con invalidación por versión (sec. 7) | Cache de TanStack Query con `invalidateQueries` tras escrituras | RNF-F03 |
-| ProblemDetails RFC 7807 (RNF-07) | Parser único de `application/problem+json` → toasts/campos | RF-F07 |
-| Rate limit `429` + `Retry-After` (RF-08) | Cliente HTTP con backoff que respeta `Retry-After` | RF-F07 |
-| Health check (RF-07) | Badge de salud en el header | RF-F08 |
-| Arquitectura hexagonal (RNF-02) | Puertos y adaptadores: `application/puertos.ts` → `infrastructure/apiCoelsa.ts` | RNF-F02 |
-| Tests de dominio (RNF-10) | Vitest con los mismos casos (CUIT, estados, CMC7) | RNF-F07 |
+| Patrón del backend (SPEC)                         | Contraparte en el front                                                         | Sección |
+| ------------------------------------------------- | ------------------------------------------------------------------------------- | ------- |
+| Strategy de creación (RF-01)                      | Estrategia por tipo para formularios y requests                                 | RF-F03  |
+| Idempotencia con `Idempotency-Key` (RF-02)        | GUID de intento generado en el form y reusado en reintentos                     | RF-F04  |
+| Envelope paginado (RF-03)                         | Tabla paginada con TanStack Query + `keepPreviousData`                          | RF-F01  |
+| Máquina de estados (RF-05)                        | Acciones condicionadas por `transiciones.ts`                                    | RF-F05  |
+| Cache Redis con invalidación por versión (sec. 7) | Cache de TanStack Query con `invalidateQueries` tras escrituras                 | RNF-F03 |
+| ProblemDetails RFC 7807 (RNF-07)                  | Parser único de `application/problem+json` → toasts/campos                      | RF-F07  |
+| Rate limit `429` + `Retry-After` (RF-08)          | Cliente HTTP con backoff que respeta `Retry-After`                              | RF-F07  |
+| Health check (RF-07)                              | Badge de salud en el header                                                     | RF-F08  |
+| Arquitectura hexagonal (RNF-02)                   | Puertos y adaptadores: `application/puertos.ts` → `infrastructure/apiCoelsa.ts` | RNF-F02 |
+| Tests de dominio (RNF-10)                         | Vitest con los mismos casos (CUIT, estados, CMC7)                               | RNF-F07 |
 
 ## 7. Estructura de proyecto
 
@@ -190,6 +198,7 @@ Front_Coelsa/
         detalle/              # Vista individual + acciones de estado/baja
         creacion/             # Formularios con strategy + idempotencia
       ui/                     # Componentes shadcn/ui + wrappers propios
+    lib/                      # Utilidades transversales (cn de clases Tailwind)
     tests/                    # Espejos de los tests del backend + smoke de UI
   docs/
     SPEC.md
