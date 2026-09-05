@@ -1,0 +1,6 @@
+@Coelsa.Api_HostAddress = http://localhost:5034
+
+GET {{Coelsa.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

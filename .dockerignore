@@ -1,0 +1,8 @@
+**/bin/
+**/obj/
+**/.git/
+**/.vs/
+**/*.user
+tests/
+.gitignore
+README.md

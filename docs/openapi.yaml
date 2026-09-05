@@ -1,0 +1,671 @@
+openapi: 3.0.3
+info:
+  title: Simulador COELSA — Cheques y Echeqs
+  version: 1.0.0
+  description: |
+    Microservicio que simula el rol de COELSA (cámara electrónica de compensación)
+    limitado a la gestión de cheques físicos (identificados por CMC7) y echeqs
+    (identificados por IDECHEQ).
+
+    **Convenciones clave:**
+    - La creación es idempotente: enviar el header `Idempotency-Key` (GUID).
+    - Las consultas por CUIT/CUIL están separadas por tipo y son paginadas.
+    - Los errores se responden con ProblemDetails (RFC 7807) en español.
+servers:
+  - url: http://localhost:8080
+    description: docker compose (local)
+tags:
+  - name: Cheques
+    description: Cheques físicos identificados por CMC7 (30 dígitos).
+  - name: Echeqs
+    description: Cheques electrónicos identificados por IDECHEQ.
+  - name: Health
+    description: Health checks de infraestructura.
+
+paths:
+  /api/v1/cheques:
+    post:
+      tags: [Cheques]
+      operationId: crearChequeFisico
+      summary: Crea un cheque físico (idempotente)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearChequeFisicoRequest'
+      responses:
+        '201':
+          description: Cheque creado.
+          headers:
+            Idempotent-Replay:
+              $ref: '#/components/headers/IdempotentReplay'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChequeResponse'
+        '200':
+          description: Replay idempotente (misma key + mismo body). Devuelve el recurso original.
+          headers:
+            Idempotent-Replay:
+              $ref: '#/components/headers/IdempotentReplay'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChequeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    get:
+      tags: [Cheques]
+      operationId: listarCheques
+      summary: Lista cheques físicos por CUIT/CUIL (librador o beneficiario), paginado
+      parameters:
+        - $ref: '#/components/parameters/Cuit'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Página de cheques.
+          content:
+            application/json:
+          schema:
+            $ref: '#/components/schemas/PagedChequeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/cheques/{cmc7}:
+    get:
+      tags: [Cheques]
+      operationId: obtenerCheque
+      summary: Obtiene un cheque físico por su CMC7
+      parameters:
+        - $ref: '#/components/parameters/Cmc7'
+      responses:
+        '200':
+          description: Cheque encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChequeResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Cheques]
+      operationId: eliminarCheque
+      summary: Baja lógica de un cheque físico por CMC7
+      parameters:
+        - $ref: '#/components/parameters/Cmc7'
+      responses:
+        '204':
+          description: Baja lógica aplicada.
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/cheques/{cmc7}/estado:
+    patch:
+      tags: [Cheques]
+      operationId: cambiarEstadoCheque
+      summary: Cambia el estado de un cheque físico
+      parameters:
+        - $ref: '#/components/parameters/Cmc7'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CambiarEstadoRequest'
+      responses:
+        '200':
+          description: Estado actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChequeResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs:
+    post:
+      tags: [Echeqs]
+      operationId: crearEcheq
+      summary: Crea un echeq (idempotente); el simulador asigna el IDECHEQ
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearEcheqRequest'
+      responses:
+        '201':
+          description: Echeq creado (incluye IDECHEQ asignado).
+          headers:
+            Idempotent-Replay:
+              $ref: '#/components/headers/IdempotentReplay'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EcheqResponse'
+        '200':
+          description: Replay idempotente (misma key + mismo body).
+          headers:
+            Idempotent-Replay:
+              $ref: '#/components/headers/IdempotentReplay'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EcheqResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    get:
+      tags: [Echeqs]
+      operationId: listarEcheqs
+      summary: Lista echeqs por CUIT/CUIL (librador o beneficiario), paginado
+      parameters:
+        - $ref: '#/components/parameters/Cuit'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Página de echeqs.
+          content:
+            application/json:
+          schema:
+            $ref: '#/components/schemas/PagedEcheqResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/echeqs/{idecheq}:
+    get:
+      tags: [Echeqs]
+      operationId: obtenerEcheq
+      summary: Obtiene un echeq por su IDECHEQ
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      responses:
+        '200':
+          description: Echeq encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EcheqResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Echeqs]
+      operationId: eliminarEcheq
+      summary: Baja lógica de un echeq por IDECHEQ
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      responses:
+        '204':
+          description: Baja lógica aplicada.
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/echeqs/{idecheq}/estado:
+    patch:
+      tags: [Echeqs]
+      operationId: cambiarEstadoEcheq
+      summary: Cambia el estado de un echeq
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CambiarEstadoRequest'
+      responses:
+        '200':
+          description: Estado actualizado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EcheqResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /health:
+    get:
+      tags: [Health]
+      operationId: health
+      summary: Estado de la API, PostgreSQL y Redis
+      responses:
+        '200':
+          description: Todos los componentes saludables.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Algún componente no disponible.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: GUID único por operación de creación. Mismo key + mismo body = replay seguro.
+      schema:
+        type: string
+        format: uuid
+      example: 3f8a1c2e-9b4d-4f6a-8e2b-1d7c5a9e0f33
+    Cmc7:
+      name: cmc7
+      in: path
+      required: true
+      description: Código magnetizable de 30 dígitos (banco+sucursal+código postal+número de cheque+cuenta).
+      schema:
+        type: string
+        pattern: '^\d{30}$'
+      example: '060000114250000123400001234567'
+    IdEcheq:
+      name: idecheq
+      in: path
+      required: true
+      description: Identificador alfanumérico del echeq asignado por el simulador.
+      schema:
+        type: string
+        pattern: '^[A-Z0-9]{18}$'
+      example: EQ7F3A9B2C1D4E5F6A
+    Cuit:
+      name: cuit
+      in: query
+      required: true
+      description: CUIT/CUIL (librador o beneficiario). 11 dígitos con verificador módulo 11.
+      schema:
+        type: string
+        pattern: '^\d{11}$'
+      example: '20123456789'
+    Page:
+      name: page
+      in: query
+      required: false
+      description: Página (1-based).
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      description: Tamaño de página (1-100).
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 100
+        default: 10
+
+  headers:
+    IdempotentReplay:
+      description: "'true' si la respuesta es un replay idempotente de una creación previa."
+      schema:
+        type: boolean
+        default: false
+
+  responses:
+    BadRequest:
+      description: Error de validación (body inválido, CUIT inválido, falta Idempotency-Key, etc.).
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Conflict:
+      description: Conflicto — CMC7/CUD duplicado con key distinta, o misma Idempotency-Key con body distinto.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NotFound:
+      description: No existe un instrumento con el identificador indicado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    UnprocessableEntity:
+      description: Transición de estado inválida (ej. Anulado → Compensado) o motivo de rechazo ausente/incluido según estado.
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    TooManyRequests:
+      description: Se excedió el límite de solicitudes (rate limiting, RF-08). Reintentar cuando indique Retry-After.
+      headers:
+        Retry-After:
+          description: Segundos hasta que se pueda reintentar.
+          schema:
+            type: integer
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+
+  schemas:
+    CrearChequeFisicoRequest:
+      type: object
+      required: [cmc7, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision]
+      properties:
+        cmc7:
+          type: string
+          pattern: '^\d{30}$'
+          description: banco(3) + sucursal(4) + código postal(4) + número de cheque(8) + cuenta(11).
+          example: '060000114250000123400001234567'
+        cuitLibrador:
+          $ref: '#/components/schemas/Cuit'
+        cuitBeneficiario:
+          $ref: '#/components/schemas/Cuit'
+        monto:
+          $ref: '#/components/schemas/Monto'
+        moneda:
+          $ref: '#/components/schemas/Moneda'
+        fechaEmision:
+          type: string
+          format: date
+          example: '2026-09-05'
+        fechaDiferimiento:
+          type: string
+          format: date
+          nullable: true
+          description: "'null' = a la vista. Debe ser ≥ fechaEmision."
+          example: '2026-10-05'
+
+    CrearEcheqRequest:
+      type: object
+      required: [cud, codigoBanco, numeroCuenta, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision]
+      properties:
+        cud:
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+          description: Clave Única Digital (SHA-256, 64 hex).
+          example: a3f5c9e10b2d47f68a9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2
+        codigoBanco:
+          type: string
+          pattern: '^\d{3}$'
+          description: Código BCRA del banco librador.
+          example: '011'
+        numeroCuenta:
+          type: string
+          pattern: '^\d{12}$'
+          example: '000098765432'
+        cuitLibrador:
+          $ref: '#/components/schemas/Cuit'
+        cuitBeneficiario:
+          $ref: '#/components/schemas/Cuit'
+        monto:
+          $ref: '#/components/schemas/Monto'
+        moneda:
+          $ref: '#/components/schemas/Moneda'
+        fechaEmision:
+          type: string
+          format: date
+          example: '2026-09-05'
+        fechaDiferimiento:
+          type: string
+          format: date
+          nullable: true
+          example: null
+
+    CambiarEstadoRequest:
+      type: object
+      required: [estado]
+      properties:
+        estado:
+          $ref: '#/components/schemas/EstadoInstrumento'
+        motivoRechazo:
+          allOf:
+            - $ref: '#/components/schemas/MotivoRechazo'
+          nullable: true
+          description: Obligatorio si estado = Rechazado; prohibido en cualquier otro estado.
+
+    ChequeResponse:
+      type: object
+      properties:
+        identificador:
+          type: string
+          description: El CMC7 completo.
+          example: '060000114250000123400001234567'
+        tipo:
+          type: string
+          enum: [ChequeFisico]
+        desgloseCmc7:
+          type: object
+          description: Tramos derivados del CMC7 (no se persisten).
+          properties:
+            banco:
+              type: string
+              example: '060'
+            sucursal:
+              type: string
+              example: '0001'
+            codigoPostal:
+              type: string
+              example: '1425'
+            numeroCheque:
+              type: string
+              example: '00001234'
+            numeroCuenta:
+              type: string
+              example: '00001234567'
+        cuitLibrador:
+          $ref: '#/components/schemas/Cuit'
+        cuitBeneficiario:
+          $ref: '#/components/schemas/Cuit'
+        monto:
+          $ref: '#/components/schemas/Monto'
+        moneda:
+          $ref: '#/components/schemas/Moneda'
+        fechaEmision:
+          type: string
+          format: date
+        fechaDiferimiento:
+          type: string
+          format: date
+          nullable: true
+        estado:
+          $ref: '#/components/schemas/EstadoInstrumento'
+        motivoRechazo:
+          allOf:
+            - $ref: '#/components/schemas/MotivoRechazo'
+          nullable: true
+        fechaCreacion:
+          type: string
+          format: date-time
+
+    EcheqResponse:
+      type: object
+      properties:
+        identificador:
+          type: string
+          description: El IDECHEQ asignado por el simulador.
+          example: EQ7F3A9B2C1D4E5F6A
+        tipo:
+          type: string
+          enum: [Echeq]
+        cud:
+          type: string
+          pattern: '^[0-9a-fA-F]{64}$'
+        codigoBanco:
+          type: string
+          example: '011'
+        numeroCuenta:
+          type: string
+          example: '000098765432'
+        cuitLibrador:
+          $ref: '#/components/schemas/Cuit'
+        cuitBeneficiario:
+          $ref: '#/components/schemas/Cuit'
+        monto:
+          $ref: '#/components/schemas/Monto'
+        moneda:
+          $ref: '#/components/schemas/Moneda'
+        fechaEmision:
+          type: string
+          format: date
+        fechaDiferimiento:
+          type: string
+          format: date
+          nullable: true
+        estado:
+          $ref: '#/components/schemas/EstadoInstrumento'
+        motivoRechazo:
+          allOf:
+            - $ref: '#/components/schemas/MotivoRechazo'
+          nullable: true
+        cantidadEndosos:
+          type: integer
+          format: int32
+          example: 0
+        fechaCreacion:
+          type: string
+          format: date-time
+
+    PagedChequeResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChequeResponse'
+        page:
+          type: integer
+          format: int32
+          example: 1
+        pageSize:
+          type: integer
+          format: int32
+          example: 10
+        totalCount:
+          type: integer
+          format: int64
+          example: 42
+        totalPages:
+          type: integer
+          format: int32
+          example: 5
+
+    PagedEcheqResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/EcheqResponse'
+        page:
+          type: integer
+          format: int32
+        pageSize:
+          type: integer
+          format: int32
+        totalCount:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+          format: int32
+
+    EstadoInstrumento:
+      type: string
+      enum: [Emitido, Depositado, Compensado, Rechazado, Anulado, Pagado]
+
+    MotivoRechazo:
+      type: integer
+      description: Código de motivo de rechazo.
+      enum: [11, 12, 21, 25]
+      x-enum-descriptions:
+        11: Falta de fondos
+        12: Cuenta inexistente / embargada
+        21: Defecto formal
+        25: Cheque adulterado o falsificado
+
+    Moneda:
+      type: string
+      enum: [P, D]
+      description: "'P' = pesos, 'D' = dólares."
+
+    Monto:
+      type: number
+      format: double
+      exclusiveMinimum: 0
+      example: 1500000.50
+
+    Cuit:
+      type: string
+      pattern: '^\d{11}$'
+      description: CUIT/CUIL de 11 dígitos con dígito verificador (módulo 11).
+      example: '20123456789'
+
+    ProblemDetail:
+      type: object
+      description: Error RFC 7807 (application/problem+json), mensajes en español.
+      properties:
+        type:
+          type: string
+          example: 'https://tools.ietf.org/html/rfc7807'
+        title:
+          type: string
+          example: 'Transición de estado inválida'
+        status:
+          type: integer
+          example: 422
+        detail:
+          type: string
+          example: 'No se puede pasar de Anulado a Compensado.'
+        instance:
+          type: string
+          example: '/api/v1/cheques/060000114250000123400001234567/estado'
+        errors:
+          type: object
+          nullable: true
+          description: Diccionario campo → errores de validación.
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [Healthy, Degraded, Unhealthy]
+        checks:
+          type: object
+          properties:
+            postgres:
+              type: string
+              enum: [Healthy, Unhealthy]
+            redis:
+              type: string
+              enum: [Healthy, Unhealthy]

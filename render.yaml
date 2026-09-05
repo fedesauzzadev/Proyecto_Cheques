@@ -1,0 +1,45 @@
+# Blueprint de Render: https://render.com/docs/blueprint-spec
+# Produccion sigue la rama main, desarrollo sigue la rama develop.
+# Los secretos (sync: false) se completan en el dashboard al aplicar el blueprint.
+services:
+  - type: web
+    name: coelsa-api-prod
+    runtime: docker
+    plan: free
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:10000
+      - key: COELSA__SWAGGER
+        value: "true"
+      - key: COELSA__SEED
+        value: "true"
+      - key: ConnectionStrings__Postgres
+        sync: false
+      - key: ConnectionStrings__Redis
+        sync: false
+
+  - type: web
+    name: coelsa-api-dev
+    runtime: docker
+    plan: free
+    autoDeploy: true
+    branch: develop
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Development
+      - key: ASPNETCORE_URLS
+        value: http://+:10000
+      - key: COELSA__SWAGGER
+        value: "true"
+      - key: COELSA__SEED
+        value: "true"
+      - key: ConnectionStrings__Postgres
+        sync: false
+      - key: ConnectionStrings__Redis
+        sync: false

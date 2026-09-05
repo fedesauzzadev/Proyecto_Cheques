@@ -1,0 +1,137 @@
+using System.Security.Cryptography;
+using System.Text;
+using Coelsa.Domain;
+using Coelsa.Domain.Entidades;
+using Coelsa.Domain.Validaciones;
+using Coelsa.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+
+namespace Coelsa.Api;
+
+/// <summary>
+/// Aplica migraciones y genera el seed de demostración (~30 instrumentos variados)
+/// solo si la base está vacía, en desarrollo o con Coelsa:Seed=true (SPEC sección 9).
+/// </summary>
+public static class InicializacionBaseDeDatos
+{
+    public static async Task InicializarAsync(IServiceProvider services)
+    {
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CoelsaDbContext>();
+        var environment = scope.ServiceProvider.GetRequiredService<IHostEnvironment>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+        if (db.Database.GetMigrations().Any())
+        {
+            await db.Database.MigrateAsync();
+        }
+        else
+        {
+            // Fallback si no hay migraciones generadas (primer arranque sin dotnet-ef).
+            await db.Database.EnsureCreatedAsync();
+        }
+
+        var sembrar = environment.IsDevelopment() || configuration.GetValue<bool>("Coelsa:Seed");
+        if (!sembrar || await db.ChequesFisicos.AnyAsync() || await db.Echeqs.AnyAsync())
+        {
+            return;
+        }
+
+        var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+        var cuits = new[]
+        {
+            ValidadorCuit.Completar("2012345678"),
+            ValidadorCuit.Completar("2787654321"),
+            ValidadorCuit.Completar("3051122233"),
+            ValidadorCuit.Completar("2033445566")
+        };
+
+        var bancos = new[] { "060", "011", "029", "034", "065" };
+
+        for (var i = 1; i <= 18; i++)
+        {
+            var cmc7 = $"{bancos[i % bancos.Length]}{i % 9:D4}{1425:D4}{i:D8}{12345678901:D11}";
+            var cheque = ChequeFisico.Crear(
+                cmc7,
+                cuits[i % cuits.Length],
+                cuits[(i + 1) % cuits.Length],
+                monto: 150_000m * (i % 7 + 1),
+                i % 3 == 0 ? Moneda.Dolares : Moneda.Pesos,
+                hoy.AddDays(-(i % 10)),
+                i % 2 == 0 ? hoy.AddDays(i % 30) : null,
+                hoy);
+
+            AplicarEstadoDemo(cheque, i);
+
+            db.ChequesFisicos.Add(cheque);
+        }
+
+        for (var i = 1; i <= 12; i++)
+        {
+            var cud = Convert.ToHexString(
+                SHA256.HashData(Encoding.UTF8.GetBytes($"echeq-seed-{i}"))).ToLowerInvariant();
+            var idEcheq = $"EQSEED{i:D12}";
+
+            var echeq = Echeq.Crear(
+                idEcheq,
+                cud,
+                bancos[i % bancos.Length],
+                $"{987654320000 + i}",
+                cuits[i % cuits.Length],
+                cuits[(i + 2) % cuits.Length],
+                monto: 80_000m * (i % 5 + 1),
+                i % 4 == 0 ? Moneda.Dolares : Moneda.Pesos,
+                hoy.AddDays(-(i % 8)),
+                i % 3 == 0 ? hoy.AddDays(i % 45) : null,
+                hoy);
+
+            AplicarEstadoDemo(echeq, i);
+
+            db.Echeqs.Add(echeq);
+        }
+
+        await db.SaveChangesAsync();
+    }
+
+    private static void AplicarEstadoDemo(IInstrumento instrumento, int i)
+    {
+        switch (i % 5)
+        {
+            case 1:
+                Avanzar(instrumento, EstadoInstrumento.Depositado);
+                break;
+            case 2:
+                Avanzar(instrumento, EstadoInstrumento.Depositado, EstadoInstrumento.Compensado);
+                break;
+            case 3 when i % 2 == 0:
+                Avanzar(instrumento, EstadoInstrumento.Depositado);
+                if (instrumento is ChequeFisico cheque)
+                {
+                    cheque.CambiarEstado(EstadoInstrumento.Rechazado, MotivoRechazo.FaltaDeFondos);
+                }
+                else if (instrumento is Echeq echeq)
+                {
+                    echeq.CambiarEstado(EstadoInstrumento.Rechazado, MotivoRechazo.DefectoFormal);
+                }
+                break;
+        }
+    }
+
+    private static void Avanzar(IInstrumento instrumento, params EstadoInstrumento[] estados)
+    {
+        foreach (var estado in estados)
+        {
+            if (instrumento is ChequeFisico cheque)
+            {
+                cheque.CambiarEstado(estado, null);
+            }
+            else if (instrumento is Echeq echeq)
+            {
+                echeq.CambiarEstado(estado, null);
+            }
+        }
+    }
+}
