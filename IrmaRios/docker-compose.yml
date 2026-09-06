@@ -1,0 +1,81 @@
+# Slice 1 de Banco IrmaRios (RFC-004): Identidad + Cartera.
+# Base de datos PRIVADA por servicio (dos Postgres) + Redis compartido para el cache de cartera.
+# Cartera valida los depósitos contra el COELSA dev de Render (fuente de verdad del ecosistema).
+services:
+  identidad:
+    build: ./Identidad
+    ports:
+      - "8081:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Postgres=Host=postgres-identidad;Port=5432;Database=irmarios_identidad;Username=irmarios;Password=irmarios123
+    depends_on:
+      postgres-identidad:
+        condition: service_healthy
+    restart: unless-stopped
+
+  cartera:
+    build: ./Cartera
+    ports:
+      - "8082:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Postgres=Host=postgres-cartera;Port=5432;Database=irmarios_cartera;Username=irmarios;Password=irmarios123
+      - ConnectionStrings__Redis=redis:6379
+      - Integraciones__Identidad__BaseUrl=http://identidad:8080
+      - Integraciones__Coelsa__BaseUrl=https://coelsa-api-dev.onrender.com
+    depends_on:
+      postgres-cartera:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres-identidad:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=irmarios_identidad
+      - POSTGRES_USER=irmarios
+      - POSTGRES_PASSWORD=irmarios123
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata_identidad:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U irmarios -d irmarios_identidad"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  postgres-cartera:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=irmarios_cartera
+      - POSTGRES_USER=irmarios
+      - POSTGRES_PASSWORD=irmarios123
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata_cartera:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U irmarios -d irmarios_cartera"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata_identidad:
+  pgdata_cartera:

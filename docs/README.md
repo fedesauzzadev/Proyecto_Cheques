@@ -10,6 +10,7 @@ decisiones de diseño. La documentación **por servicio** vive en cada subsistem
 | `Coelsa/docs/openapi.yaml` | Contrato formal de la API (fuente de verdad) |
 | `Coelsa/docs/DEPLOY.md` | Runbook de despliegue (Render + Neon + Upstash) |
 | `Coelsa/tools/carga-masiva/README.md` | Herramienta de carga masiva de prueba (CLI + MCP) |
+| `IrmaRios/docs/SPEC.md` | SPEC Banco IrmaRios (slice 1: Identidad + Cartera) |
 | `Front_Coelsa/docs/SPEC.md` | Especificación del front (Consola de Instrumentos) |
 
 ## El pipeline documental
