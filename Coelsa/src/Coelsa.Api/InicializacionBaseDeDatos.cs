@@ -93,8 +93,6 @@ public static class InicializacionBaseDeDatos
                 var echeq = Echeq.Crear(
                     idEcheq,
                     cmc7,
-                    bancos[i % bancos.Length],
-                    $"{987654320000 + i}",
                     cuits[i % cuits.Length],
                     cuits[(i + 2) % cuits.Length],
                     monto: 80_000m * (i % 5 + 1),

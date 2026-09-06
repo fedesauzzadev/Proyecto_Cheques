@@ -114,8 +114,6 @@ public class EcheqCreationStrategyTests
     private static CrearEcheqRequest RequestValido(string? cmc7 = null) => new()
     {
         Cmc7 = cmc7 ?? Cmc7Valido(1),
-        CodigoBanco = "011",
-        NumeroCuenta = "000098765432",
         CuitLibrador = ValidadorCuit.Completar("2012345678"),
         CuitBeneficiario = ValidadorCuit.Completar("2787654321"),
         Monto = 250_000m,

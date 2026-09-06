@@ -40,8 +40,6 @@ public class EntidadesTests
         => Echeq.Crear(
             idEcheq!,
             cmc7 ?? Cmc7Valido("011"),
-            "011",
-            "000098765432",
             CuitValido(cuitLibrador ?? CuitLibrador),
             CuitValido(cuitBeneficiario ?? CuitBeneficiario),
             monto!.Value,
@@ -189,15 +187,6 @@ public class EntidadesTests
     public void Echeq_Crear_ConCmc7Invalido_LanzaExcepcion(string cmc7)
     {
         Assert.Throws<ValidacionException>(() => CrearEcheq(cmc7: cmc7));
-    }
-
-    [Fact]
-    public void Echeq_Crear_ConCodigoBancoInvalido_LanzaExcepcion()
-    {
-        Assert.Throws<ValidacionException>(() => Echeq.Crear(
-            "ABCDEFGHIJK", Cmc7Valido(), "60", "000098765432",
-            CuitValido(CuitLibrador), CuitValido(CuitBeneficiario), 100m,
-            Moneda.Pesos, Hoy, null, Hoy));
     }
 
     [Fact]

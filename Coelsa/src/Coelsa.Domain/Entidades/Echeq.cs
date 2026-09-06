@@ -15,8 +15,6 @@ public class Echeq : IInstrumento
     public Guid Id { get; private set; }
     public string IdEcheq { get; private set; } = null!;
     public string Cmc7 { get; private set; } = null!;
-    public string CodigoBanco { get; private set; } = null!;
-    public string NumeroCuenta { get; private set; } = null!;
     public string CuitLibrador { get; private set; } = null!;
     public string CuitBeneficiario { get; private set; } = null!;
     public decimal Monto { get; private set; }
@@ -38,8 +36,6 @@ public class Echeq : IInstrumento
     public static Echeq Crear(
         string idEcheq,
         string cmc7,
-        string codigoBanco,
-        string numeroCuenta,
         string cuitLibrador,
         string cuitBeneficiario,
         decimal monto,
@@ -57,23 +53,11 @@ public class Echeq : IInstrumento
 
         var cmc7Vo = ValueObjects.Cmc7.Crear(cmc7);
 
-        if (codigoBanco is null || !Regex.IsMatch(codigoBanco, @"^\d{3}$"))
-        {
-            throw new ValidacionException("El código de banco debe ser numérico de 3 dígitos (código BCRA).");
-        }
-
-        if (numeroCuenta is null || !Regex.IsMatch(numeroCuenta, @"^\d{12}$"))
-        {
-            throw new ValidacionException("El número de cuenta debe ser numérico de 12 dígitos.");
-        }
-
         return new Echeq
         {
             Id = Guid.NewGuid(),
             IdEcheq = idEcheq,
             Cmc7 = cmc7Vo.Valor,
-            CodigoBanco = codigoBanco,
-            NumeroCuenta = numeroCuenta,
             CuitLibrador = cuitLibrador!,
             CuitBeneficiario = cuitBeneficiario!,
             Monto = monto,

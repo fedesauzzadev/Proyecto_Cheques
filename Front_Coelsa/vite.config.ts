@@ -14,6 +14,7 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:8080', changeOrigin: true },
       '/health': { target: 'http://localhost:8080', changeOrigin: true },
+      '/swagger': { target: 'http://localhost:8080', changeOrigin: true },
     },
   },
   test: {

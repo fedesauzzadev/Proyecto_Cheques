@@ -22,20 +22,6 @@ export const estrategiaEcheq: EstrategiaEcheq = {
       ayuda: 'banco(3) + sucursal(4) + código postal(4) + número de cheque(8) + cuenta(11)',
     },
     {
-      nombre: 'codigoBanco',
-      etiqueta: 'Código de banco',
-      tipo: 'texto',
-      obligatorio: true,
-      placeholder: '011',
-    },
-    {
-      nombre: 'numeroCuenta',
-      etiqueta: 'Número de cuenta',
-      tipo: 'texto',
-      obligatorio: true,
-      placeholder: '000098765432',
-    },
-    {
       nombre: 'cuitLibrador',
       etiqueta: 'CUIT/CUIL librador',
       tipo: 'texto',
@@ -75,22 +61,12 @@ export const estrategiaEcheq: EstrategiaEcheq = {
         '(banco + sucursal + código postal + número de cheque + cuenta).';
     }
 
-    if (!/^\d{3}$/.test(request.codigoBanco)) {
-      errores.codigoBanco = 'El código de banco debe ser de 3 dígitos.';
-    }
-
-    if (!/^\d{12}$/.test(request.numeroCuenta)) {
-      errores.numeroCuenta = 'El número de cuenta debe ser de 12 dígitos.';
-    }
-
     return { ...errores, ...validarComunes(request, hoy) };
   },
 
   construir(valores: Record<string, string>): CrearEcheqRequest {
     return {
       cmc7: (valores.cmc7 ?? '').trim(),
-      codigoBanco: (valores.codigoBanco ?? '').trim(),
-      numeroCuenta: (valores.numeroCuenta ?? '').trim(),
       cuitLibrador: (valores.cuitLibrador ?? '').trim(),
       cuitBeneficiario: (valores.cuitBeneficiario ?? '').trim(),
       monto: Number(valores.monto),

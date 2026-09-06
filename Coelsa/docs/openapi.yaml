@@ -403,22 +403,13 @@ components:
 
     CrearEcheqRequest:
       type: object
-      required: [cmc7, codigoBanco, numeroCuenta, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision]
+      required: [cmc7, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision]
       properties:
         cmc7:
           type: string
           pattern: '^\d{30}$'
           description: CMC7 completo del echeq (banco+sucursal+código postal+número de cheque+cuenta). Único.
           example: '011000114250000123400001234567'
-        codigoBanco:
-          type: string
-          pattern: '^\d{3}$'
-          description: Código BCRA del banco librador.
-          example: '011'
-        numeroCuenta:
-          type: string
-          pattern: '^\d{12}$'
-          example: '000098765432'
         cuitLibrador:
           $ref: '#/components/schemas/Cuit'
         cuitBeneficiario:
@@ -538,12 +529,6 @@ components:
             numeroCuenta:
               type: string
               example: '00001234567'
-        codigoBanco:
-          type: string
-          example: '011'
-        numeroCuenta:
-          type: string
-          example: '000098765432'
         cuitLibrador:
           $ref: '#/components/schemas/Cuit'
         cuitBeneficiario:
