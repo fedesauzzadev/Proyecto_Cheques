@@ -4,6 +4,11 @@
 
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? '';
 
+/** Base de la API para construir URLs fuera del cliente (ej: Swagger embebido). */
+export function obtenerUrlBaseApi(): string {
+  return BASE_URL;
+}
+
 const TIMEOUT_POR_DEFECTO = 15_000;
 const REINTENTO_429_MAX_ESPERA = 5_000;
 

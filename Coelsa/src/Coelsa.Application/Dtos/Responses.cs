@@ -33,8 +33,6 @@ public class EcheqResponse
     public string Tipo { get; set; } = "Echeq";
     public string Cmc7 { get; set; } = null!;
     public DesgloseCmc7Dto DesgloseCmc7 { get; set; } = null!;
-    public string CodigoBanco { get; set; } = null!;
-    public string NumeroCuenta { get; set; } = null!;
     public string CuitLibrador { get; set; } = null!;
     public string CuitBeneficiario { get; set; } = null!;
     public decimal Monto { get; set; }

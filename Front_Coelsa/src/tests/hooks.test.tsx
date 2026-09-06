@@ -39,8 +39,6 @@ const echeq = {
     numeroCheque: '00001234',
     numeroCuenta: '00001234567',
   },
-  codigoBanco: '011',
-  numeroCuenta: '000098765432',
   cuitLibrador: '20123456786',
   cuitBeneficiario: '30511222334',
   monto: 250000,

@@ -14,8 +14,6 @@ public class EcheqConfiguracion : IEntityTypeConfiguration<Echeq>
 
         builder.Property(e => e.IdEcheq).HasMaxLength(11).IsRequired();
         builder.Property(e => e.Cmc7).HasMaxLength(30).IsRequired();
-        builder.Property(e => e.CodigoBanco).HasMaxLength(3).IsRequired();
-        builder.Property(e => e.NumeroCuenta).HasMaxLength(12).IsRequired();
         builder.Property(e => e.CuitLibrador).HasMaxLength(11).IsRequired();
         builder.Property(e => e.CuitBeneficiario).HasMaxLength(11).IsRequired();
         builder.Property(e => e.Monto).HasPrecision(18, 2);

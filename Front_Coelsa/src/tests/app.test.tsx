@@ -37,5 +37,6 @@ describe('App', () => {
 
     expect(screen.getByRole('heading', { name: /consola de instrumentos/i })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Consultar' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Contratos' })).toHaveAttribute('href', '/contratos');
   });
 });

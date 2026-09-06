@@ -7,6 +7,7 @@ const ENLACES = [
   { destino: '/', etiqueta: 'Consultar' },
   { destino: '/nuevo/cheque', etiqueta: 'Nuevo cheque' },
   { destino: '/nuevo/echeq', etiqueta: 'Nuevo echeq' },
+  { destino: '/contratos', etiqueta: 'Contratos' },
 ];
 
 export default function Encabezado() {

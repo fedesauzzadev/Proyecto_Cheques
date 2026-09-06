@@ -39,8 +39,6 @@ public class EcheqCreationStrategy(
         var echeq = Echeq.Crear(
             idEcheq,
             request.Cmc7,
-            request.CodigoBanco,
-            request.NumeroCuenta,
             request.CuitLibrador,
             request.CuitBeneficiario,
             request.Monto,

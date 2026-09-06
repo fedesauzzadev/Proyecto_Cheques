@@ -18,8 +18,6 @@ const chequeValido: CrearChequeFisicoRequest = {
 
 const echeqValido: CrearEcheqRequest = {
   cmc7: '011000114250000123400001234567',
-  codigoBanco: '011',
-  numeroCuenta: '000098765432',
   cuitLibrador: '20123456786',
   cuitBeneficiario: '30511222334',
   monto: 250000,
@@ -78,18 +76,6 @@ describe('estrategiaEcheq', () => {
     const errores = estrategiaEcheq.validar({ ...echeqValido, cmc7: '123' }, HOY);
     expect(errores.cmc7).toMatch(/30 dígitos/);
   });
-
-  it('rechaza código de banco que no es de 3 dígitos', () => {
-    expect(estrategiaEcheq.validar({ ...echeqValido, codigoBanco: '11' }, HOY).codigoBanco).toMatch(
-      /3 dígitos/,
-    );
-  });
-
-  it('rechaza número de cuenta que no es de 12 dígitos', () => {
-    expect(
-      estrategiaEcheq.validar({ ...echeqValido, numeroCuenta: '123' }, HOY).numeroCuenta,
-    ).toMatch(/12 dígitos/);
-  });
 });
 
 describe('construir (request builder)', () => {
@@ -118,8 +104,6 @@ describe('construir (request builder)', () => {
   it('arma el request del echeq normalizando el CMC7', () => {
     const request = estrategiaEcheq.construir({
       cmc7: ' 011000114250000123400001234567 ',
-      codigoBanco: '011',
-      numeroCuenta: '000098765432',
       cuitLibrador: '20123456786',
       cuitBeneficiario: '30511222334',
       monto: '250000',

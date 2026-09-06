@@ -51,8 +51,6 @@ public static class Mapeadores
                 NumeroCheque = desglose.NumeroCheque,
                 NumeroCuenta = desglose.NumeroCuenta
             },
-            CodigoBanco = echeq.CodigoBanco,
-            NumeroCuenta = echeq.NumeroCuenta,
             CuitLibrador = echeq.CuitLibrador,
             CuitBeneficiario = echeq.CuitBeneficiario,
             Monto = echeq.Monto,

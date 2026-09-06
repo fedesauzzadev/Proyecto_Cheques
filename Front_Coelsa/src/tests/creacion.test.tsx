@@ -156,8 +156,6 @@ describe('PaginaCreacion — echeq', () => {
     renderCreacion('Echeq', puerto);
 
     await usuario.type(screen.getByLabelText(/cmc7/i), '011000114250000123400001234567');
-    await usuario.type(screen.getByLabelText(/código de banco/i), '011');
-    await usuario.type(screen.getByLabelText(/número de cuenta/i), '000098765432');
     await usuario.type(screen.getByLabelText(/cuit\/cuil librador/i), '20123456786');
     await usuario.type(screen.getByLabelText(/cuit\/cuil beneficiario/i), '30511222334');
     await usuario.type(screen.getByLabelText(/^monto/i), '250000');
@@ -169,10 +167,10 @@ describe('PaginaCreacion — echeq', () => {
     expect(puerto.crearEcheq).toHaveBeenCalledWith(
       expect.objectContaining({
         cmc7: '011000114250000123400001234567',
-        codigoBanco: '011',
         moneda: 'P',
       }),
       expect.stringMatching(UUID),
     );
+    expect(screen.getByText(/generado por la API/i)).toBeInTheDocument();
   });
 });

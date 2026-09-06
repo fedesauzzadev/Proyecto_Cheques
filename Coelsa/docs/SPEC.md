@@ -135,8 +135,6 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 | Id | Guid | PK interna, no expuesta en la API. |
 | IdEcheq | string(11) | Alfabético **generado por el simulador** al crear (11 letras mayúsculas). **Único.** Clave de búsqueda. |
 | Cmc7 | string(30) | CMC7 completo del echeq (mismo formato que el físico). **Único.** Se expone con su desglose derivado. |
-| CodigoBanco | string(3) | Banco librador. |
-| NumeroCuenta | string(12) | Cuenta librador. |
 | CuitLibrador / CuitBeneficiario | string(11) | CUIT/CUIL válido. |
 | Monto / Moneda / FechaEmision / FechaDiferimiento | — | Igual que cheque físico. |
 | Estado / MotivoRechazo / Auditoría | — | Igual que cheque físico. |
@@ -196,8 +194,6 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 ```json
 {
   "cmc7": "011000114250000123400001234567",
-  "codigoBanco": "011",
-  "numeroCuenta": "000098765432",
   "cuitLibrador": "20123456789",
   "cuitBeneficiario": "30712345678",
   "monto": 250000.00,

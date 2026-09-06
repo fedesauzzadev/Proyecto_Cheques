@@ -9,14 +9,6 @@ public class CrearEcheqRequest
         ErrorMessage = "El CMC7 debe ser un código magnetizable de 30 dígitos (banco + sucursal + código postal + número de cheque + cuenta).")]
     public string Cmc7 { get; set; } = null!;
 
-    [Required(ErrorMessage = "El código de banco es obligatorio.")]
-    [RegularExpression(@"^\d{3}$", ErrorMessage = "El código de banco debe ser numérico de 3 dígitos (código BCRA).")]
-    public string CodigoBanco { get; set; } = null!;
-
-    [Required(ErrorMessage = "El número de cuenta es obligatorio.")]
-    [RegularExpression(@"^\d{12}$", ErrorMessage = "El número de cuenta debe ser numérico de 12 dígitos.")]
-    public string NumeroCuenta { get; set; } = null!;
-
     [Required(ErrorMessage = "El CUIT/CUIL del librador es obligatorio.")]
     [RegularExpression(@"^\d{11}$", ErrorMessage = "El CUIT/CUIL del librador debe tener 11 dígitos.")]
     public string CuitLibrador { get; set; } = null!;

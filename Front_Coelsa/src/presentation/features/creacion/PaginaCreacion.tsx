@@ -21,6 +21,9 @@ export default function PaginaCreacion({ tipo, puerto }: Props) {
       <CardHeader>
         <CardTitle>{estrategia.titulo}</CardTitle>
         <CardDescription>{estrategia.descripcion}</CardDescription>
+        <p className="text-xs text-muted-foreground">
+          Identificador: <span className="font-medium">{estrategia.identificadorEtiqueta}</span>
+        </p>
       </CardHeader>
       <CardContent>
         {esCheque ? (

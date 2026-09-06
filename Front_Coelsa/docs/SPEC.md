@@ -111,6 +111,13 @@ sección 2 del SPEC del backend y no se repiten acá.
 - Botón de refresh manual junto al badge y reintentos con backoff ante
   fallas transitorias (los cold starts del plan gratis no deben dejarlo en rojo).
 
+### RF-F09 — Contratos (Swagger embebido)
+
+- Pestaña **Contratos** (`/contratos`) que embebe el Swagger UI de la API en
+  un iframe, sin salir de la consola.
+- La URL deriva de la misma base que usa el cliente HTTP (`VITE_API_URL`):
+  en prod carga el Swagger de la API prod, en dev el de la API dev.
+
 ## 4. Requisitos no funcionales
 
 | ID      | Requisito                                                                                                                                          |
