@@ -1,0 +1,57 @@
+name: CI IrmaRios
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "IrmaRios/**"
+      - ".github/workflows/irmarios.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "IrmaRios/**"
+      - ".github/workflows/irmarios.yml"
+
+jobs:
+  build-test:
+    name: Build y tests (Identidad + Cartera)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore Identidad
+        run: dotnet restore IrmaRios/Identidad/Identidad.sln
+
+      - name: Restore Cartera
+        run: dotnet restore IrmaRios/Cartera/Cartera.sln
+
+      - name: Build Identidad
+        run: dotnet build IrmaRios/Identidad/Identidad.sln --no-restore --configuration Release
+
+      - name: Build Cartera
+        run: dotnet build IrmaRios/Cartera/Cartera.sln --no-restore --configuration Release
+
+      - name: Test Identidad
+        run: dotnet test IrmaRios/Identidad/Identidad.sln --no-build --configuration Release --logger "console;verbosity=normal"
+
+      - name: Test Cartera
+        run: dotnet test IrmaRios/Cartera/Cartera.sln --no-build --configuration Release --logger "console;verbosity=normal"
+
+  docker:
+    name: Imágenes Docker
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build imagen Identidad
+        run: docker build -t irmarios-identidad:ci IrmaRios/Identidad
+
+      - name: Build imagen Cartera
+        run: docker build -t irmarios-cartera:ci IrmaRios/Cartera

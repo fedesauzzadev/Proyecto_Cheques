@@ -10,6 +10,7 @@ decisiones de diseño. La documentación **por servicio** vive en cada subsistem
 | `Coelsa/docs/openapi.yaml` | Contrato formal de la API (fuente de verdad) |
 | `Coelsa/docs/DEPLOY.md` | Runbook de despliegue (Render + Neon + Upstash) |
 | `Coelsa/tools/carga-masiva/README.md` | Herramienta de carga masiva de prueba (CLI + MCP) |
+| `IrmaRios/docs/SPEC.md` | SPEC Banco IrmaRios (slice 1: Identidad + Cartera) |
 | `Front_Coelsa/docs/SPEC.md` | Especificación del front (Consola de Instrumentos) |
 
 ## El pipeline documental
@@ -31,6 +32,7 @@ PRD ─────────▶ RFC ─────────▶ ADR ──
 
 ### PRD
 - [PRD — Simulador COELSA y Consola de Instrumentos](PRD.md)
+- [PRD — Banco IrmaRios: banca de cartera para empresas](PRD-banco-irmarios.md)
 
 ### RFCs (`docs/rfc/`)
 | RFC | Título | Estado |
@@ -38,6 +40,7 @@ PRD ─────────▶ RFC ─────────▶ ADR ──
 | [RFC-001](rfc/RFC-001-cache-consultas-por-cuit.md) | Estrategia de consultas por CUIT a escala | Accepted |
 | [RFC-002](rfc/RFC-002-idempotencia-en-creaciones.md) | Idempotencia en creaciones (POST) | Accepted |
 | [RFC-003](rfc/RFC-003-infraestructura-gratuita.md) | Infraestructura de despliegue sin costo | Accepted |
+| [RFC-004](rfc/RFC-004-microservicios-irmarios.md) | Microservicios por contexto delimitado (IrmaRios) | Accepted |
 
 ### ADRs (`docs/adr/`)
 | ADR | Decisión | Estado |

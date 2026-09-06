@@ -47,6 +47,62 @@ services:
       - key: ConnectionStrings__Redis
         sync: false
 
+  # ── Banco IrmaRios (RFC-004): solo dev hasta que haya producto mostrable ──
+
+  - type: web
+    name: irmarios-identidad-dev
+    runtime: docker
+    rootDir: IrmaRios/Identidad
+    plan: free
+    autoDeploy: true
+    branch: develop
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Development
+      - key: ASPNETCORE_URLS
+        value: http://+:10000
+      - key: IRMARIOS__SWAGGER
+        value: "true"
+      - key: ConnectionStrings__Postgres
+        sync: false
+      - key: OTEL_SERVICE_NAME
+        value: irmarios-identidad-dev
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_HEADERS
+        sync: false
+
+  - type: web
+    name: irmarios-cartera-dev
+    runtime: docker
+    rootDir: IrmaRios/Cartera
+    plan: free
+    autoDeploy: true
+    branch: develop
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Development
+      - key: ASPNETCORE_URLS
+        value: http://+:10000
+      - key: IRMARIOS__SWAGGER
+        value: "true"
+      - key: ConnectionStrings__Postgres
+        sync: false
+      - key: ConnectionStrings__Redis
+        sync: false
+      - key: Integraciones__Coelsa__BaseUrl
+        value: https://coelsa-api-dev.onrender.com
+      - key: Integraciones__Identidad__BaseUrl
+        value: https://irmarios-identidad-dev.onrender.com
+      - key: OTEL_SERVICE_NAME
+        value: irmarios-cartera-dev
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_HEADERS
+        sync: false
+
   # Front web (SPA): rootDir propio, publish relativo a él y rewrite a /index.html
   # para el ruteo del lado del cliente. VITE_API_URL se incrusta en el build.
   - type: web
