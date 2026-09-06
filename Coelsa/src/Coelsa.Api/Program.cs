@@ -15,6 +15,16 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
 
+// CORS para el front web (Front_Coelsa, static sites en Render): orígenes
+// configurables en Coelsa:AllowedOrigins (separados por ';').
+var origenesFront = builder.Configuration.GetValue<string>("Coelsa:AllowedOrigins")
+    ?.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+    ?? ["https://front-coelsa-prod.onrender.com", "https://front-coelsa-dev.onrender.com"];
+
+builder.Services.AddCors(opciones =>
+    opciones.AddDefaultPolicy(politica =>
+        politica.WithOrigins(origenesFront).AllowAnyHeader().AllowAnyMethod()));
+
 // RNF-14: compresión de respuestas (brotli/gzip) para listados.
 builder.Services.AddResponseCompression(options =>
 {
@@ -88,6 +98,9 @@ builder.Services.AddHealthChecks()
         tags: ["ready"]);
 
 var app = builder.Build();
+
+// CORS antes de los endpoints para que el navegador acepte las llamadas del front.
+app.UseCors();
 
 // RNF-07: errores como ProblemDetails en español.
 app.UseMiddleware<Coelsa.Api.Middleware.ManejadorExcepcionesMiddleware>();
