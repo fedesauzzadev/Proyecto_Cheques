@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { Search } from 'lucide-react';
+import { Banknote, Search, Smartphone } from 'lucide-react';
 import { Button } from '@/presentation/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/presentation/ui/card';
 import { Input } from '@/presentation/ui/input';
@@ -81,8 +81,20 @@ export default function PaginaConsulta({ puerto }: Props = {}) {
         <CardContent className="flex flex-col gap-4">
           <Tabs value={tipo} onValueChange={alCambiarTipo} aria-label="Tipo de instrumento">
             <TabsList>
-              <TabsTrigger value="ChequeFisico">{TITULOS.ChequeFisico.pestaña}</TabsTrigger>
-              <TabsTrigger value="Echeq">{TITULOS.Echeq.pestaña}</TabsTrigger>
+              <TabsTrigger
+                value="ChequeFisico"
+                className="gap-2 data-[state=active]:bg-primary data-[state=active]:font-semibold data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Banknote className="size-4" aria-hidden />
+                {TITULOS.ChequeFisico.pestaña}
+              </TabsTrigger>
+              <TabsTrigger
+                value="Echeq"
+                className="gap-2 data-[state=active]:bg-primary data-[state=active]:font-semibold data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <Smartphone className="size-4" aria-hidden />
+                {TITULOS.Echeq.pestaña}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 

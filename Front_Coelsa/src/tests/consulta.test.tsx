@@ -63,6 +63,25 @@ afterEach(() => {
 });
 
 describe('PaginaConsulta (RF-F01)', () => {
+  it('marca la pestaña activa y atenúa la inactiva', async () => {
+    const usuario = userEvent.setup();
+    const puerto = crearPuertoFalso();
+    renderPagina(puerto);
+
+    const cheques = screen.getByRole('tab', { name: /cheques físicos/i });
+    const echeqs = screen.getByRole('tab', { name: /^echeqs/i });
+    expect(cheques).toHaveAttribute('aria-selected', 'true');
+    expect(echeqs).toHaveAttribute('aria-selected', 'false');
+
+    await usuario.click(echeqs);
+
+    expect(screen.getByRole('tab', { name: /cheques físicos/i })).toHaveAttribute(
+      'aria-selected',
+      'false',
+    );
+    expect(screen.getByRole('tab', { name: /^echeqs/i })).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('informa CUIT inválido sin llamar a la API', async () => {
     const usuario = userEvent.setup();
     const puerto = crearPuertoFalso();
