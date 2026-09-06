@@ -14,8 +14,8 @@ public class EcheqRepository(CoelsaDbContext db) : IEcheqRepository
     public Task<Echeq?> ObtenerPorIdentificadorAsync(string identificador, CancellationToken ct)
         => _db.Echeqs.FirstOrDefaultAsync(e => e.IdEcheq == identificador && e.Activo, ct);
 
-    public Task<bool> ExisteCudAsync(string cud, CancellationToken ct)
-        => _db.Echeqs.AsNoTracking().AnyAsync(e => e.Cud == cud, ct);
+    public Task<bool> ExisteCmc7Async(string cmc7, CancellationToken ct)
+        => _db.Echeqs.AsNoTracking().AnyAsync(e => e.Cmc7 == cmc7, ct);
 
     public Task<bool> ExisteIdEcheqAsync(string idEcheq, CancellationToken ct)
         => _db.Echeqs.AsNoTracking().AnyAsync(e => e.IdEcheq == idEcheq, ct);

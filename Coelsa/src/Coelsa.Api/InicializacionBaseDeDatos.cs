@@ -1,5 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
+using Coelsa.Application;
 using Coelsa.Domain;
 using Coelsa.Domain.Entidades;
 using Coelsa.Domain.Validaciones;
@@ -35,7 +34,7 @@ public static class InicializacionBaseDeDatos
         }
 
         var sembrar = environment.IsDevelopment() || configuration.GetValue<bool>("Coelsa:Seed");
-        if (!sembrar || await db.ChequesFisicos.AnyAsync() || await db.Echeqs.AnyAsync())
+        if (!sembrar)
         {
             return;
         }
@@ -51,46 +50,63 @@ public static class InicializacionBaseDeDatos
 
         var bancos = new[] { "060", "011", "029", "034", "065" };
 
-        for (var i = 1; i <= 18; i++)
+        // Cada tipo se siembra por separado: si una migración vacía una tabla
+        // (como el cambio de formato del echeq), ese tipo se resiembra sin tocar el otro.
+        if (!await db.ChequesFisicos.AnyAsync())
         {
-            var cmc7 = $"{bancos[i % bancos.Length]}{i % 9:D4}{1425:D4}{i:D8}{12345678901:D11}";
-            var cheque = ChequeFisico.Crear(
-                cmc7,
-                cuits[i % cuits.Length],
-                cuits[(i + 1) % cuits.Length],
-                monto: 150_000m * (i % 7 + 1),
-                i % 3 == 0 ? Moneda.Dolares : Moneda.Pesos,
-                hoy.AddDays(-(i % 10)),
-                i % 2 == 0 ? hoy.AddDays(i % 30) : null,
-                hoy);
+            for (var i = 1; i <= 18; i++)
+            {
+                var cmc7 = $"{bancos[i % bancos.Length]}{i % 9:D4}{1425:D4}{i:D8}{12345678901:D11}";
+                var cheque = ChequeFisico.Crear(
+                    cmc7,
+                    cuits[i % cuits.Length],
+                    cuits[(i + 1) % cuits.Length],
+                    monto: 150_000m * (i % 7 + 1),
+                    i % 3 == 0 ? Moneda.Dolares : Moneda.Pesos,
+                    hoy.AddDays(-(i % 10)),
+                    i % 2 == 0 ? hoy.AddDays(i % 30) : null,
+                    hoy);
 
-            AplicarEstadoDemo(cheque, i);
+                AplicarEstadoDemo(cheque, i);
 
-            db.ChequesFisicos.Add(cheque);
+                db.ChequesFisicos.Add(cheque);
+            }
         }
 
-        for (var i = 1; i <= 12; i++)
+        if (!await db.Echeqs.AnyAsync())
         {
-            var cud = Convert.ToHexString(
-                SHA256.HashData(Encoding.UTF8.GetBytes($"echeq-seed-{i}"))).ToLowerInvariant();
-            var idEcheq = $"EQSEED{i:D12}";
+            var generadorIdEcheq = scope.ServiceProvider.GetRequiredService<IGeneradorIdEcheq>();
+            var idsEcheq = new HashSet<string>();
 
-            var echeq = Echeq.Crear(
-                idEcheq,
-                cud,
-                bancos[i % bancos.Length],
-                $"{987654320000 + i}",
-                cuits[i % cuits.Length],
-                cuits[(i + 2) % cuits.Length],
-                monto: 80_000m * (i % 5 + 1),
-                i % 4 == 0 ? Moneda.Dolares : Moneda.Pesos,
-                hoy.AddDays(-(i % 8)),
-                i % 3 == 0 ? hoy.AddDays(i % 45) : null,
-                hoy);
+            for (var i = 1; i <= 12; i++)
+            {
+                string idEcheq;
+                do
+                {
+                    idEcheq = generadorIdEcheq.Generar();
+                }
+                while (!idsEcheq.Add(idEcheq));
 
-            AplicarEstadoDemo(echeq, i);
+                // CMC7 propio del echeq (CP 2077 para no cruzarse con los físicos).
+                var cmc7 = $"{bancos[(i + 2) % bancos.Length]}{i:D4}{2077:D4}{(i + 40):D8}{(98765432100 + i):D11}";
 
-            db.Echeqs.Add(echeq);
+                var echeq = Echeq.Crear(
+                    idEcheq,
+                    cmc7,
+                    bancos[i % bancos.Length],
+                    $"{987654320000 + i}",
+                    cuits[i % cuits.Length],
+                    cuits[(i + 2) % cuits.Length],
+                    monto: 80_000m * (i % 5 + 1),
+                    i % 4 == 0 ? Moneda.Dolares : Moneda.Pesos,
+                    hoy.AddDays(-(i % 8)),
+                    i % 3 == 0 ? hoy.AddDays(i % 45) : null,
+                    hoy);
+
+                AplicarEstadoDemo(echeq, i);
+
+                db.Echeqs.Add(echeq);
+            }
         }
 
         await db.SaveChangesAsync();

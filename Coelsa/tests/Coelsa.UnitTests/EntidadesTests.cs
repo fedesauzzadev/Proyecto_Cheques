@@ -12,9 +12,7 @@ public class EntidadesTests
     private const string CuitBeneficiario = "2787654321";
     private static string CuitValido(string base10) => ValidadorCuit.Completar(base10);
 
-    private static string CudValido(string semilla) =>
-        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(semilla))).ToLowerInvariant();
+    private static string Cmc7Valido(string banco = "060") => $"{banco}000114250000123400001234567";
 
     private static ChequeFisico CrearCheque(
         string? cmc7 = "060000114250000123400001234567",
@@ -34,13 +32,14 @@ public class EntidadesTests
             Hoy);
 
     private static Echeq CrearEcheq(
-        string? cud = null,
+        string? idEcheq = "ABCDEFGHIJK",
+        string? cmc7 = null,
         string? cuitLibrador = CuitLibrador,
         string? cuitBeneficiario = CuitBeneficiario,
         decimal? monto = 250_000m)
         => Echeq.Crear(
-            "EQTEST000000000001",
-            cud ?? CudValido("test-echeq"),
+            idEcheq!,
+            cmc7 ?? Cmc7Valido("011"),
             "011",
             "000098765432",
             CuitValido(cuitLibrador ?? CuitLibrador),
@@ -170,22 +169,33 @@ public class EntidadesTests
 
         Assert.Equal(EstadoInstrumento.Emitido, echeq.Estado);
         Assert.Equal(0, echeq.CantidadEndosos);
-        Assert.Equal("EQTEST000000000001", echeq.IdEcheq);
+        Assert.Equal("ABCDEFGHIJK", echeq.IdEcheq);
+        Assert.Equal("011", echeq.DesglosarCmc7().Banco);
     }
 
     [Theory]
-    [InlineData("no-hex")]
-    [InlineData("a3f5")]
-    public void Echeq_Crear_ConCudInvalido_LanzaExcepcion(string cud)
+    [InlineData("ABCDEFGHIJ")]    // 10 letras
+    [InlineData("ABCDEFGHIJKL")]  // 12 letras
+    [InlineData("ABC12345678")]   // con dígitos
+    [InlineData("abcdefghijk")]   // minúsculas
+    public void Echeq_Crear_ConIdEcheqInvalido_LanzaExcepcion(string idEcheq)
     {
-        Assert.Throws<ValidacionException>(() => CrearEcheq(cud: cud));
+        Assert.Throws<ValidacionException>(() => CrearEcheq(idEcheq: idEcheq));
+    }
+
+    [Theory]
+    [InlineData("123")]
+    [InlineData("06000011425000012340000123456A")]
+    public void Echeq_Crear_ConCmc7Invalido_LanzaExcepcion(string cmc7)
+    {
+        Assert.Throws<ValidacionException>(() => CrearEcheq(cmc7: cmc7));
     }
 
     [Fact]
     public void Echeq_Crear_ConCodigoBancoInvalido_LanzaExcepcion()
     {
         Assert.Throws<ValidacionException>(() => Echeq.Crear(
-            "EQTEST000000000001", CudValido("test-banco"), "60", "000098765432",
+            "ABCDEFGHIJK", Cmc7Valido(), "60", "000098765432",
             CuitValido(CuitLibrador), CuitValido(CuitBeneficiario), 100m,
             Moneda.Pesos, Hoy, null, Hoy));
     }

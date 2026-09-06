@@ -4,10 +4,10 @@ namespace Coelsa.Application.Dtos;
 
 public class CrearEcheqRequest
 {
-    [Required(ErrorMessage = "El CUD es obligatorio.")]
-    [RegularExpression(@"^[0-9a-fA-F]{64}$",
-        ErrorMessage = "El CUD debe ser un hash SHA-256 expresado en 64 caracteres hexadecimales.")]
-    public string Cud { get; set; } = null!;
+    [Required(ErrorMessage = "El CMC7 es obligatorio.")]
+    [RegularExpression(@"^\d{30}$",
+        ErrorMessage = "El CMC7 debe ser un código magnetizable de 30 dígitos (banco + sucursal + código postal + número de cheque + cuenta).")]
+    public string Cmc7 { get; set; } = null!;
 
     [Required(ErrorMessage = "El código de banco es obligatorio.")]
     [RegularExpression(@"^\d{3}$", ErrorMessage = "El código de banco debe ser numérico de 3 dígitos (código BCRA).")]

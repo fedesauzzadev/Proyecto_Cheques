@@ -10,7 +10,7 @@ namespace Coelsa.Application.Estrategias;
 /// Flujo común de creación idempotente (SPEC RF-02):
 /// 1. Replay: misma key + mismo body → respuesta original (EsReplay = true).
 /// 2. Conflicto: misma key + otro body → 409.
-/// 3. Unicidad de negocio (CMC7 / CUD) → 409.
+/// 3. Unicidad de negocio (CMC7) → 409.
 /// 4. Persistencia atómica (instrumento + registro de idempotencia en la misma transacción).
 /// 5. Invalidación de cache por CUIT (librador y beneficiario).
 /// </summary>

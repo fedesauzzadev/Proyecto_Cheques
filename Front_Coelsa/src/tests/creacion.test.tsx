@@ -149,13 +149,13 @@ describe('PaginaCreacion — cheque físico (RF-F03)', () => {
 });
 
 describe('PaginaCreacion — echeq', () => {
-  it('envía el request del echeq con CUD en minúsculas', async () => {
+  it('envía el request del echeq con CMC7 completo', async () => {
     const usuario = userEvent.setup();
     const puerto = crearPuertoFalso();
     puerto.crearEcheq.mockResolvedValue({ respuesta: {}, esReplay: false });
     renderCreacion('Echeq', puerto);
 
-    await usuario.type(screen.getByLabelText(/cud/i), 'A'.repeat(64));
+    await usuario.type(screen.getByLabelText(/cmc7/i), '011000114250000123400001234567');
     await usuario.type(screen.getByLabelText(/código de banco/i), '011');
     await usuario.type(screen.getByLabelText(/número de cuenta/i), '000098765432');
     await usuario.type(screen.getByLabelText(/cuit\/cuil librador/i), '20123456786');
@@ -167,7 +167,11 @@ describe('PaginaCreacion — echeq', () => {
     await usuario.click(screen.getByRole('button', { name: /^crear$/i }));
 
     expect(puerto.crearEcheq).toHaveBeenCalledWith(
-      expect.objectContaining({ cud: 'a'.repeat(64), codigoBanco: '011', moneda: 'P' }),
+      expect.objectContaining({
+        cmc7: '011000114250000123400001234567',
+        codigoBanco: '011',
+        moneda: 'P',
+      }),
       expect.stringMatching(UUID),
     );
   });

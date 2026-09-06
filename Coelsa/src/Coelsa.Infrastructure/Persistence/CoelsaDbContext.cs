@@ -35,9 +35,9 @@ public class CoelsaDbContext(DbContextOptions<CoelsaDbContext> options) : DbCont
             var mensaje = constraint switch
             {
                 var c when c.Contains("Cmc7", StringComparison.OrdinalIgnoreCase)
-                    => "Ya existe un cheque físico con ese CMC7.",
-                var c when c.Contains("Cud", StringComparison.OrdinalIgnoreCase)
-                    => "Ya existe un echeq con ese CUD.",
+                    => constraint.Contains("echeq", StringComparison.OrdinalIgnoreCase)
+                        ? "Ya existe un echeq con ese CMC7."
+                        : "Ya existe un cheque físico con ese CMC7.",
                 var c when c.Contains("IdEcheq", StringComparison.OrdinalIgnoreCase)
                     => "Ya existe un echeq con ese IDECHEQ.",
                 var c when c.Contains("Idempotencia", StringComparison.OrdinalIgnoreCase)

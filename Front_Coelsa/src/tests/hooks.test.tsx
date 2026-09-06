@@ -29,9 +29,16 @@ const cheque = {
 };
 
 const echeq = {
-  identificador: 'EQSEED000000000001',
+  identificador: 'ABCDEFGHIJK',
   tipo: 'Echeq',
-  cud: 'a'.repeat(64),
+  cmc7: '011000114250000123400001234567',
+  desgloseCmc7: {
+    banco: '011',
+    sucursal: '0001',
+    codigoPostal: '1425',
+    numeroCheque: '00001234',
+    numeroCuenta: '00001234567',
+  },
   codigoBanco: '011',
   numeroCuenta: '000098765432',
   cuitLibrador: '20123456786',
@@ -117,16 +124,13 @@ describe('useObtenerInstrumento (RF-F02)', () => {
     const puerto = crearPuertoFalso();
     const { Envoltorio } = crearEnvoltorio();
 
-    const { result } = renderHook(
-      () => useObtenerInstrumento('Echeq', 'EQSEED000000000001', puerto),
-      {
-        wrapper: Envoltorio,
-      },
-    );
+    const { result } = renderHook(() => useObtenerInstrumento('Echeq', 'ABCDEFGHIJK', puerto), {
+      wrapper: Envoltorio,
+    });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(puerto.obtenerEcheq).toHaveBeenCalledWith('EQSEED000000000001', expect.any(AbortSignal));
-    expect(result.current.data?.identificador).toBe('EQSEED000000000001');
+    expect(puerto.obtenerEcheq).toHaveBeenCalledWith('ABCDEFGHIJK', expect.any(AbortSignal));
+    expect(result.current.data?.identificador).toBe('ABCDEFGHIJK');
   });
 });
 
@@ -177,20 +181,20 @@ describe('useCambiarEstado (RF-F05)', () => {
     });
     const { Envoltorio, cliente } = crearEnvoltorio();
 
-    const clave = claveDetalle('Echeq', 'EQSEED000000000001');
+    const clave = claveDetalle('Echeq', 'ABCDEFGHIJK');
     cliente.setQueryData(clave, echeq);
 
     const { result } = renderHook(() => useCambiarEstado('Echeq', puerto), { wrapper: Envoltorio });
 
     await act(async () => {
       result.current.mutate({
-        identificador: 'EQSEED000000000001',
+        identificador: 'ABCDEFGHIJK',
         request: { estado: 'Rechazado', motivoRechazo: 11 },
       });
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(puerto.cambiarEstadoEcheq).toHaveBeenCalledWith('EQSEED000000000001', {
+    expect(puerto.cambiarEstadoEcheq).toHaveBeenCalledWith('ABCDEFGHIJK', {
       estado: 'Rechazado',
       motivoRechazo: 11,
     });

@@ -36,11 +36,21 @@ public static class Mapeadores
 
     public static EcheqResponse AResponse(this Echeq echeq)
     {
+        var desglose = echeq.DesglosarCmc7();
+
         return new EcheqResponse
         {
             Identificador = echeq.IdEcheq,
             Tipo = "Echeq",
-            Cud = echeq.Cud,
+            Cmc7 = echeq.Cmc7,
+            DesgloseCmc7 = new DesgloseCmc7Dto
+            {
+                Banco = desglose.Banco,
+                Sucursal = desglose.Sucursal,
+                CodigoPostal = desglose.CodigoPostal,
+                NumeroCheque = desglose.NumeroCheque,
+                NumeroCuenta = desglose.NumeroCuenta
+            },
             CodigoBanco = echeq.CodigoBanco,
             NumeroCuenta = echeq.NumeroCuenta,
             CuitLibrador = echeq.CuitLibrador,

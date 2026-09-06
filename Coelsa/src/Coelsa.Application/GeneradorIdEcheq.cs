@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 namespace Coelsa.Application;
 
 /// <summary>
-/// Genera IDECHEQ: prefijo "EQ" + 16 caracteres alfanuméricos = 18 (SPEC 5.2).
+/// Genera IDECHEQ: 11 letras mayúsculas aleatorias (SPEC 5.2).
 /// </summary>
 public interface IGeneradorIdEcheq
 {
@@ -12,20 +12,20 @@ public interface IGeneradorIdEcheq
 
 public class GeneradorIdEcheq : IGeneradorIdEcheq
 {
-    private const string Alfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private const int LongitudAleatoria = 16;
+    private const string Alfabeto = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private const int Longitud = 11;
 
     public string Generar()
     {
-        Span<char> caracteres = stackalloc char[LongitudAleatoria];
-        Span<byte> bytes = stackalloc byte[LongitudAleatoria];
+        Span<char> caracteres = stackalloc char[Longitud];
+        Span<byte> bytes = stackalloc byte[Longitud];
         RandomNumberGenerator.Fill(bytes);
 
-        for (var i = 0; i < LongitudAleatoria; i++)
+        for (var i = 0; i < Longitud; i++)
         {
             caracteres[i] = Alfabeto[bytes[i] % Alfabeto.Length];
         }
 
-        return "EQ" + new string(caracteres);
+        return new string(caracteres);
     }
 }
