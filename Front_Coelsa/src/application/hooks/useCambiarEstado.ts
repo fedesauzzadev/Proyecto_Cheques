@@ -24,6 +24,10 @@ export function useCambiarEstado(
 ): UseMutationResult<EcheqResponse, ErrorCoelsa, VariablesCambioEstado>;
 export function useCambiarEstado(
   tipo: TipoInstrumentoForm,
+  puerto?: IPuertoInstrumentos,
+): UseMutationResult<ChequeResponse | EcheqResponse, ErrorCoelsa, VariablesCambioEstado>;
+export function useCambiarEstado(
+  tipo: TipoInstrumentoForm,
   puerto: IPuertoInstrumentos = apiInstrumentos,
 ) {
   const cliente = useQueryClient();
