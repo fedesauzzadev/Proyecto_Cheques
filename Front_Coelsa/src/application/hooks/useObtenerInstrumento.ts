@@ -21,6 +21,11 @@ export function useObtenerInstrumento(
 export function useObtenerInstrumento(
   tipo: TipoInstrumentoForm,
   identificador: string,
+  puerto?: IPuertoInstrumentos,
+): UseQueryResult<ChequeResponse | EcheqResponse, ErrorCoelsa>;
+export function useObtenerInstrumento(
+  tipo: TipoInstrumentoForm,
+  identificador: string,
   puerto: IPuertoInstrumentos = apiInstrumentos,
 ) {
   return useQuery<ChequeResponse | EcheqResponse, ErrorCoelsa>({

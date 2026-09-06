@@ -23,6 +23,11 @@ export function useListarInstrumentos(
 export function useListarInstrumentos(
   tipo: TipoInstrumentoForm,
   filtros: ConsultaPaginada,
+  puerto?: IPuertoInstrumentos,
+): UseQueryResult<PagedResponse<ChequeResponse> | PagedResponse<EcheqResponse>, ErrorCoelsa>;
+export function useListarInstrumentos(
+  tipo: TipoInstrumentoForm,
+  filtros: ConsultaPaginada,
   puerto: IPuertoInstrumentos = apiInstrumentos,
 ) {
   return useQuery<PagedResponse<ChequeResponse> | PagedResponse<EcheqResponse>, ErrorCoelsa>({
