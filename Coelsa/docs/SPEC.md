@@ -122,6 +122,7 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 | Moneda | string(1) | `P` (pesos) o `D` (dólares). |
 | FechaEmision | DateOnly | ≤ hoy+1. |
 | FechaDiferimiento | DateOnly? | ≥ FechaEmision; null = a la vista. |
+| FechaVencimiento | DateOnly | Obligatoria; > FechaEmision y > FechaDiferimiento si viene. |
 | Estado | enum | Ver 5.3. |
 | MotivoRechazo | enum? | Requerido solo si `Rechazado`. |
 | FechaCreacion / FechaModificacion / FechaBaja / Activo | — | Auditoría y soft delete. |
@@ -136,7 +137,7 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 | IdEcheq | string(11) | Alfabético **generado por el simulador** al crear (11 letras mayúsculas). **Único.** Clave de búsqueda. |
 | Cmc7 | string(30) | CMC7 completo del echeq (mismo formato que el físico). **Único.** Se expone con su desglose derivado. |
 | CuitLibrador / CuitBeneficiario | string(11) | CUIT/CUIL válido. |
-| Monto / Moneda / FechaEmision / FechaDiferimiento | — | Igual que cheque físico. |
+| Monto / Moneda / FechaEmision / FechaDiferimiento / FechaVencimiento | — | Igual que cheque físico. |
 | Estado / MotivoRechazo / Auditoría | — | Igual que cheque físico. |
 | CantidadEndosos | int | Default 0 (informativo en v1). |
 
@@ -186,7 +187,8 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
   "monto": 1500000.50,
   "moneda": "P",
   "fechaEmision": "2026-09-05",
-  "fechaDiferimiento": "2026-10-05"
+  "fechaDiferimiento": "2026-10-05",
+  "fechaVencimiento": "2026-11-05"
 }
 ```
 
@@ -198,7 +200,8 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
   "cuitBeneficiario": "30712345678",
   "monto": 250000.00,
   "moneda": "D",
-  "fechaEmision": "2026-09-05"
+  "fechaEmision": "2026-09-05",
+  "fechaVencimiento": "2026-10-05"
 }
 ```
 

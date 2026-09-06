@@ -20,6 +20,7 @@ const cheque = {
   monto: 150000.5,
   moneda: 'P',
   fechaEmision: '2026-09-05',
+  fechaVencimiento: '2026-10-05',
   fechaDiferimiento: null,
   fechaCreacion: '2026-09-05T10:00:00Z',
 };

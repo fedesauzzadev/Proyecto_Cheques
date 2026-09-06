@@ -20,6 +20,7 @@ const chequeCreado = {
   monto: 150000.5,
   moneda: 'P',
   fechaEmision: '2026-09-05',
+  fechaVencimiento: '2026-10-05',
   fechaDiferimiento: null,
   fechaCreacion: '2026-09-05T10:00:00Z',
 };
@@ -30,6 +31,7 @@ const VALORES_VALIDOS = {
   cuitBeneficiario: '27876543219',
   monto: '150000.50',
   fechaEmision: '2026-09-05',
+  fechaVencimiento: '2026-10-05',
 };
 
 function crearPuertoFalso() {
@@ -70,6 +72,9 @@ async function completarChequeValido(usuario: ReturnType<typeof userEvent.setup>
   fireEvent.change(screen.getByLabelText(/fecha de emisión/i), {
     target: { value: VALORES_VALIDOS.fechaEmision },
   });
+  fireEvent.change(screen.getByLabelText(/fecha de vencimiento/i), {
+    target: { value: VALORES_VALIDOS.fechaVencimiento },
+  });
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -109,6 +114,7 @@ describe('PaginaCreacion — cheque físico (RF-F03)', () => {
         moneda: 'P',
         fechaEmision: VALORES_VALIDOS.fechaEmision,
         fechaDiferimiento: null,
+        fechaVencimiento: VALORES_VALIDOS.fechaVencimiento,
       },
       expect.stringMatching(UUID),
     );
@@ -162,12 +168,16 @@ describe('PaginaCreacion — echeq', () => {
     fireEvent.change(screen.getByLabelText(/fecha de emisión/i), {
       target: { value: '2026-09-05' },
     });
+    fireEvent.change(screen.getByLabelText(/fecha de vencimiento/i), {
+      target: { value: '2026-10-05' },
+    });
     await usuario.click(screen.getByRole('button', { name: /^crear$/i }));
 
     expect(puerto.crearEcheq).toHaveBeenCalledWith(
       expect.objectContaining({
         cmc7: '011000114250000123400001234567',
         moneda: 'P',
+        fechaVencimiento: '2026-10-05',
       }),
       expect.stringMatching(UUID),
     );

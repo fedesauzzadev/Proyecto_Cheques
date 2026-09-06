@@ -375,7 +375,7 @@ components:
   schemas:
     CrearChequeFisicoRequest:
       type: object
-      required: [cmc7, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision]
+      required: [cmc7, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision, fechaVencimiento]
       properties:
         cmc7:
           type: string
@@ -400,10 +400,15 @@ components:
           nullable: true
           description: "'null' = a la vista. Debe ser ≥ fechaEmision."
           example: '2026-10-05'
+        fechaVencimiento:
+          type: string
+          format: date
+          description: Obligatoria. Debe ser posterior a fechaEmision (y a fechaDiferimiento si viene).
+          example: '2026-11-05'
 
     CrearEcheqRequest:
       type: object
-      required: [cmc7, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision]
+      required: [cmc7, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision, fechaVencimiento]
       properties:
         cmc7:
           type: string
@@ -427,6 +432,11 @@ components:
           format: date
           nullable: true
           example: null
+        fechaVencimiento:
+          type: string
+          format: date
+          description: Obligatoria. Debe ser posterior a fechaEmision (y a fechaDiferimiento si viene).
+          example: '2026-11-05'
 
     CambiarEstadoRequest:
       type: object
@@ -484,6 +494,9 @@ components:
           type: string
           format: date
           nullable: true
+        fechaVencimiento:
+          type: string
+          format: date
         estado:
           $ref: '#/components/schemas/EstadoInstrumento'
         motivoRechazo:
@@ -544,6 +557,9 @@ components:
           type: string
           format: date
           nullable: true
+        fechaVencimiento:
+          type: string
+          format: date
         estado:
           $ref: '#/components/schemas/EstadoInstrumento'
         motivoRechazo:

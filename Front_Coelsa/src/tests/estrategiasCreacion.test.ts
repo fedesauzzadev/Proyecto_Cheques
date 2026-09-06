@@ -14,6 +14,7 @@ const chequeValido: CrearChequeFisicoRequest = {
   moneda: 'P',
   fechaEmision: '2026-09-05',
   fechaDiferimiento: '2026-10-05',
+  fechaVencimiento: '2026-11-05',
 };
 
 const echeqValido: CrearEcheqRequest = {
@@ -23,6 +24,7 @@ const echeqValido: CrearEcheqRequest = {
   monto: 250000,
   moneda: 'D',
   fechaEmision: '2026-09-05',
+  fechaVencimiento: '2026-10-05',
 };
 
 describe('estrategiaChequeFisico', () => {
@@ -65,6 +67,22 @@ describe('estrategiaChequeFisico', () => {
     );
     expect(errores.fechaDiferimiento).toMatch(/anterior a la fecha de emisión/);
   });
+
+  it('rechaza vencimiento no posterior a la emisión', () => {
+    const errores = estrategiaChequeFisico.validar(
+      { ...chequeValido, fechaDiferimiento: null, fechaVencimiento: '2026-09-05' },
+      HOY,
+    );
+    expect(errores.fechaVencimiento).toMatch(/posterior a la fecha de emisión/);
+  });
+
+  it('rechaza vencimiento no posterior al diferimiento', () => {
+    const errores = estrategiaChequeFisico.validar(
+      { ...chequeValido, fechaVencimiento: '2026-10-05' },
+      HOY,
+    );
+    expect(errores.fechaVencimiento).toMatch(/posterior a la fecha de diferimiento/);
+  });
 });
 
 describe('estrategiaEcheq', () => {
@@ -88,6 +106,7 @@ describe('construir (request builder)', () => {
       moneda: 'P',
       fechaEmision: '2026-09-05',
       fechaDiferimiento: '',
+      fechaVencimiento: '2026-11-05',
     });
 
     expect(request).toEqual({
@@ -98,6 +117,7 @@ describe('construir (request builder)', () => {
       moneda: 'P',
       fechaEmision: '2026-09-05',
       fechaDiferimiento: null,
+      fechaVencimiento: '2026-11-05',
     });
   });
 
@@ -110,10 +130,12 @@ describe('construir (request builder)', () => {
       moneda: 'D',
       fechaEmision: '2026-09-05',
       fechaDiferimiento: '',
+      fechaVencimiento: '2026-10-05',
     });
 
     expect(request.cmc7).toBe('011000114250000123400001234567');
     expect(request.moneda).toBe('D');
+    expect(request.fechaVencimiento).toBe('2026-10-05');
     expect(estrategiaEcheq.validar(request, HOY)).toEqual({});
   });
 });

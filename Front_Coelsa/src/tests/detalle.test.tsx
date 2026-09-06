@@ -25,6 +25,7 @@ const chequeEmitido = {
   monto: 150000.5,
   moneda: 'P',
   fechaEmision: '2026-09-05',
+  fechaVencimiento: '2026-10-05',
   fechaDiferimiento: null,
   estado: 'Emitido',
   motivoRechazo: null,

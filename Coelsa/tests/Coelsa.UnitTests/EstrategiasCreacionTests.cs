@@ -24,7 +24,8 @@ public class EstrategiasCreacionTests
         Monto = 1_500_000.50m,
         Moneda = "P",
         FechaEmision = new DateOnly(2026, 9, 5),
-        FechaDiferimiento = new DateOnly(2026, 10, 5)
+        FechaDiferimiento = new DateOnly(2026, 10, 5),
+        FechaVencimiento = new DateOnly(2026, 11, 5)
     };
 
     [Fact]
@@ -118,7 +119,8 @@ public class EcheqCreationStrategyTests
         CuitBeneficiario = ValidadorCuit.Completar("2787654321"),
         Monto = 250_000m,
         Moneda = "D",
-        FechaEmision = new DateOnly(2026, 9, 5)
+        FechaEmision = new DateOnly(2026, 9, 5),
+        FechaVencimiento = new DateOnly(2026, 10, 5)
     };
 
     [Fact]

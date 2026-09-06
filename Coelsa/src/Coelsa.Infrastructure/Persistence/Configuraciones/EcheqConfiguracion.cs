@@ -32,6 +32,7 @@ public class EcheqConfiguracion : IEntityTypeConfiguration<Echeq>
                 nameof(Echeq.Moneda),
                 nameof(Echeq.FechaEmision),
                 nameof(Echeq.FechaDiferimiento),
+                nameof(Echeq.FechaVencimiento),
                 nameof(Echeq.Estado),
                 nameof(Echeq.MotivoRechazo))
             .HasDatabaseName("ix_echeqs_cuit_librador_activos");

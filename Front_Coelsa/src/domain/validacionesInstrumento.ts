@@ -12,6 +12,7 @@ export interface DatosComunesInstrumento {
   monto: number;
   fechaEmision: string; // YYYY-MM-DD
   fechaDiferimiento?: string | null;
+  fechaVencimiento: string; // YYYY-MM-DD
 }
 
 function hoyMasUnDia(hoy?: string): string {
@@ -47,6 +48,14 @@ export function validarComunes(datos: DatosComunesInstrumento, hoy?: string): Er
 
   if (datos.fechaDiferimiento && datos.fechaDiferimiento < datos.fechaEmision) {
     errores.fechaDiferimiento = `La fecha de diferimiento ${datos.fechaDiferimiento} no puede ser anterior a la fecha de emisión ${datos.fechaEmision}.`;
+  }
+
+  if (!(datos.fechaVencimiento > datos.fechaEmision)) {
+    errores.fechaVencimiento = `La fecha de vencimiento ${datos.fechaVencimiento} debe ser posterior a la fecha de emisión ${datos.fechaEmision}.`;
+  }
+
+  if (datos.fechaDiferimiento && !(datos.fechaVencimiento > datos.fechaDiferimiento)) {
+    errores.fechaVencimiento = `La fecha de vencimiento ${datos.fechaVencimiento} debe ser posterior a la fecha de diferimiento ${datos.fechaDiferimiento}.`;
   }
 
   return errores;

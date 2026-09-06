@@ -11,6 +11,7 @@ public static class ValidacionesInstrumento
         decimal monto,
         DateOnly fechaEmision,
         DateOnly? fechaDiferimiento,
+        DateOnly fechaVencimiento,
         DateOnly? hoy = null)
     {
         hoy ??= DateOnly.FromDateTime(DateTime.UtcNow);
@@ -38,6 +39,16 @@ public static class ValidacionesInstrumento
         if (fechaDiferimiento.HasValue && fechaDiferimiento.Value < fechaEmision)
         {
             throw new ValidacionException($"La fecha de diferimiento {fechaDiferimiento.Value:yyyy-MM-dd} no puede ser anterior a la fecha de emisión {fechaEmision:yyyy-MM-dd}.");
+        }
+
+        if (fechaVencimiento <= fechaEmision)
+        {
+            throw new ValidacionException($"La fecha de vencimiento {fechaVencimiento:yyyy-MM-dd} debe ser posterior a la fecha de emisión {fechaEmision:yyyy-MM-dd}.");
+        }
+
+        if (fechaDiferimiento.HasValue && fechaVencimiento <= fechaDiferimiento.Value)
+        {
+            throw new ValidacionException($"La fecha de vencimiento {fechaVencimiento:yyyy-MM-dd} debe ser posterior a la fecha de diferimiento {fechaDiferimiento.Value:yyyy-MM-dd}.");
         }
     }
 

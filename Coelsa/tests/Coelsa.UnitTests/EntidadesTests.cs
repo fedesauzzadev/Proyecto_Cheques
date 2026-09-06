@@ -20,7 +20,8 @@ public class EntidadesTests
         string? cuitBeneficiario = CuitBeneficiario,
         decimal? monto = 100_000m,
         DateOnly? fechaEmision = null,
-        DateOnly? fechaDiferimiento = null)
+        DateOnly? fechaDiferimiento = null,
+        DateOnly? fechaVencimiento = null)
         => ChequeFisico.Crear(
             cmc7!,
             CuitValido(cuitLibrador ?? CuitLibrador),
@@ -29,6 +30,7 @@ public class EntidadesTests
             Moneda.Pesos,
             fechaEmision ?? Hoy,
             fechaDiferimiento,
+            fechaVencimiento ?? Hoy.AddDays(30),
             Hoy);
 
     private static Echeq CrearEcheq(
@@ -36,7 +38,8 @@ public class EntidadesTests
         string? cmc7 = null,
         string? cuitLibrador = CuitLibrador,
         string? cuitBeneficiario = CuitBeneficiario,
-        decimal? monto = 250_000m)
+        decimal? monto = 250_000m,
+        DateOnly? fechaVencimiento = null)
         => Echeq.Crear(
             idEcheq!,
             cmc7 ?? Cmc7Valido("011"),
@@ -46,6 +49,7 @@ public class EntidadesTests
             Moneda.Dolares,
             Hoy,
             null,
+            fechaVencimiento ?? Hoy.AddDays(30),
             Hoy);
 
     [Fact]
@@ -77,6 +81,7 @@ public class EntidadesTests
             Moneda.Pesos,
             Hoy,
             null,
+            Hoy.AddDays(30),
             Hoy));
     }
 
@@ -97,6 +102,20 @@ public class EntidadesTests
     public void ChequeFisico_Crear_ConFechaEmisionFuturaLejana_LanzaExcepcion()
     {
         Assert.Throws<ValidacionException>(() => CrearCheque(fechaEmision: Hoy.AddDays(5)));
+    }
+
+    [Fact]
+    public void ChequeFisico_Crear_ConVencimientoNoPosteriorAEmision_LanzaExcepcion()
+    {
+        Assert.Throws<ValidacionException>(() => CrearCheque(fechaVencimiento: Hoy));
+    }
+
+    [Fact]
+    public void ChequeFisico_Crear_ConVencimientoNoPosteriorADiferimiento_LanzaExcepcion()
+    {
+        Assert.Throws<ValidacionException>(() => CrearCheque(
+            fechaDiferimiento: Hoy.AddDays(10),
+            fechaVencimiento: Hoy.AddDays(10)));
     }
 
     [Fact]
@@ -187,6 +206,12 @@ public class EntidadesTests
     public void Echeq_Crear_ConCmc7Invalido_LanzaExcepcion(string cmc7)
     {
         Assert.Throws<ValidacionException>(() => CrearEcheq(cmc7: cmc7));
+    }
+
+    [Fact]
+    public void Echeq_Crear_ConVencimientoNoPosteriorAEmision_LanzaExcepcion()
+    {
+        Assert.Throws<ValidacionException>(() => CrearEcheq(fechaVencimiento: Hoy));
     }
 
     [Fact]

@@ -29,4 +29,7 @@ public class CrearChequeFisicoRequest
     public DateOnly FechaEmision { get; set; }
 
     public DateOnly? FechaDiferimiento { get; set; }
+
+    [Required(ErrorMessage = "La fecha de vencimiento es obligatoria.")]
+    public DateOnly FechaVencimiento { get; set; }
 }

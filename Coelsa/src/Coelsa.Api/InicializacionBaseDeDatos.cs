@@ -57,14 +57,17 @@ public static class InicializacionBaseDeDatos
             for (var i = 1; i <= 18; i++)
             {
                 var cmc7 = $"{bancos[i % bancos.Length]}{i % 9:D4}{1425:D4}{i:D8}{12345678901:D11}";
+                var emision = hoy.AddDays(-(i % 10));
+                DateOnly? diferimiento = i % 2 == 0 ? hoy.AddDays(i % 30) : null;
                 var cheque = ChequeFisico.Crear(
                     cmc7,
                     cuits[i % cuits.Length],
                     cuits[(i + 1) % cuits.Length],
                     monto: 150_000m * (i % 7 + 1),
                     i % 3 == 0 ? Moneda.Dolares : Moneda.Pesos,
-                    hoy.AddDays(-(i % 10)),
-                    i % 2 == 0 ? hoy.AddDays(i % 30) : null,
+                    emision,
+                    diferimiento,
+                    (diferimiento ?? emision).AddDays(30),
                     hoy);
 
                 AplicarEstadoDemo(cheque, i);
@@ -90,6 +93,8 @@ public static class InicializacionBaseDeDatos
                 // CMC7 propio del echeq (CP 2077 para no cruzarse con los físicos).
                 var cmc7 = $"{bancos[(i + 2) % bancos.Length]}{i:D4}{2077:D4}{(i + 40):D8}{(98765432100 + i):D11}";
 
+                var emision = hoy.AddDays(-(i % 8));
+                DateOnly? diferimiento = i % 3 == 0 ? hoy.AddDays(i % 45) : null;
                 var echeq = Echeq.Crear(
                     idEcheq,
                     cmc7,
@@ -97,8 +102,9 @@ public static class InicializacionBaseDeDatos
                     cuits[(i + 2) % cuits.Length],
                     monto: 80_000m * (i % 5 + 1),
                     i % 4 == 0 ? Moneda.Dolares : Moneda.Pesos,
-                    hoy.AddDays(-(i % 8)),
-                    i % 3 == 0 ? hoy.AddDays(i % 45) : null,
+                    emision,
+                    diferimiento,
+                    (diferimiento ?? emision).AddDays(30),
                     hoy);
 
                 AplicarEstadoDemo(echeq, i);
