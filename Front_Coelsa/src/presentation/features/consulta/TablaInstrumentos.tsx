@@ -43,49 +43,51 @@ export default function TablaInstrumentos({ tipo, pagina, actualizando = false }
 
   return (
     <div aria-busy={actualizando} className={actualizando ? 'opacity-60' : undefined}>
-      <Table>
-        <TableCaption>
-          {pagina.totalCount} {pagina.totalCount === 1 ? 'instrumento' : 'instrumentos'} · página{' '}
-          {pagina.page} de {pagina.totalPages}
-        </TableCaption>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Identificador</TableHead>
-            <TableHead>Librador</TableHead>
-            <TableHead>Beneficiario</TableHead>
-            <TableHead className="text-right">Monto</TableHead>
-            <TableHead>Emisión</TableHead>
-            <TableHead>Diferimiento</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead>Motivo rechazo</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {pagina.items.map((item) => (
-            <TableRow key={item.identificador}>
-              <TableCell className="font-mono text-xs">
-                <Link
-                  to={`/${rutaDetalle(tipo)}/${item.identificador}`}
-                  className="text-primary underline-offset-4 hover:underline"
-                >
-                  {item.identificador}
-                </Link>
-              </TableCell>
-              <TableCell className="font-mono">{item.cuitLibrador}</TableCell>
-              <TableCell className="font-mono">{item.cuitBeneficiario}</TableCell>
-              <TableCell className="text-right font-medium">
-                {formatearMonto(item.monto, item.moneda)}
-              </TableCell>
-              <TableCell>{formatearFecha(item.fechaEmision)}</TableCell>
-              <TableCell>{describirDiferimiento(item.fechaDiferimiento)}</TableCell>
-              <TableCell>
-                <EstadoBadge estado={item.estado} />
-              </TableCell>
-              <TableCell className="text-xs">{describirMotivo(item.motivoRechazo)}</TableCell>
+      <div className="overflow-x-auto rounded-md">
+        <Table className="min-w-[760px]">
+          <TableCaption>
+            {pagina.totalCount} {pagina.totalCount === 1 ? 'instrumento' : 'instrumentos'} · página{' '}
+            {pagina.page} de {pagina.totalPages}
+          </TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Identificador</TableHead>
+              <TableHead>Librador</TableHead>
+              <TableHead>Beneficiario</TableHead>
+              <TableHead className="text-right">Monto</TableHead>
+              <TableHead>Emisión</TableHead>
+              <TableHead>Diferimiento</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead>Motivo rechazo</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {pagina.items.map((item) => (
+              <TableRow key={item.identificador}>
+                <TableCell className="font-mono text-xs">
+                  <Link
+                    to={`/${rutaDetalle(tipo)}/${item.identificador}`}
+                    className="text-primary underline-offset-4 hover:underline"
+                  >
+                    {item.identificador}
+                  </Link>
+                </TableCell>
+                <TableCell className="font-mono">{item.cuitLibrador}</TableCell>
+                <TableCell className="font-mono">{item.cuitBeneficiario}</TableCell>
+                <TableCell className="text-right font-medium">
+                  {formatearMonto(item.monto, item.moneda)}
+                </TableCell>
+                <TableCell>{formatearFecha(item.fechaEmision)}</TableCell>
+                <TableCell>{describirDiferimiento(item.fechaDiferimiento)}</TableCell>
+                <TableCell>
+                  <EstadoBadge estado={item.estado} />
+                </TableCell>
+                <TableCell className="text-xs">{describirMotivo(item.motivoRechazo)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

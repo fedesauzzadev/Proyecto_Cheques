@@ -88,7 +88,7 @@ export default function PaginaConsulta({ puerto }: Props = {}) {
 
           <form onSubmit={alEnviar} className="flex flex-col gap-2" noValidate>
             <Label htmlFor="cuit">CUIT/CUIL</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Input
                 id="cuit"
                 inputMode="numeric"
