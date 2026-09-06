@@ -39,6 +39,7 @@ PRD ─────────▶ RFC ─────────▶ ADR ──
 | [RFC-001](rfc/RFC-001-cache-consultas-por-cuit.md) | Estrategia de consultas por CUIT a escala | Accepted |
 | [RFC-002](rfc/RFC-002-idempotencia-en-creaciones.md) | Idempotencia en creaciones (POST) | Accepted |
 | [RFC-003](rfc/RFC-003-infraestructura-gratuita.md) | Infraestructura de despliegue sin costo | Accepted |
+| [RFC-004](rfc/RFC-004-microservicios-irmarios.md) | Microservicios por contexto delimitado (IrmaRios) | Accepted |
 
 ### ADRs (`docs/adr/`)
 | ADR | Decisión | Estado |

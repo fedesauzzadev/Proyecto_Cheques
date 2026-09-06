@@ -34,6 +34,9 @@ cuenta con acreditación y extracto observables.
 ### Objetivos de aprendizaje
 - Practicar un dominio con **dinero**: consistencia de saldos, idempotencia en
   operaciones financieras, separación entre decisión crediticia y mayor.
+- Practicar **microservicios**: REST y SOLID entre servicios, comunicación HTTP
+  síncrona y colas asíncronas, la saga del descuento y observabilidad
+  distribuida (trazas, métricas y logs correlacionados).
 - Evolucionar el monorepo con un segundo producto completo (backend + front).
 
 ### No objetivos (v1)
@@ -41,6 +44,7 @@ cuenta con acreditación y extracto observables.
 - Otros productos de crédito (préstamos, pases, cauciones, acuerdos).
 - Compensación interbancaria propia (eso hace COELSA).
 - Notificaciones automáticas (email/push).
+- El chat IA con descuento por MCP (visión futura, sección 9).
 
 ## 3. Usuarios (personas)
 
@@ -125,6 +129,18 @@ cuenta con acreditación y extracto observables.
 - Línea de crédito por empresa con límite y estado; el uso disponible se
   recalcula desde las operaciones vivas.
 
+### HU-10 — Observabilidad de punta a punta
+> Como operador quiero seguir una operación a través de todo el sistema y ver
+> la salud del banco en un tablero.
+
+- Toda operación financiera deja una **traza completa**: los servicios que
+  participaron, cuánto tardó cada paso y qué decidió cada uno.
+- Tableros con métricas técnicas (latencia, errores, disponibilidad por
+  servicio) y de **negocio** (montos descontados por día, tasas pactadas,
+  rechazos, uso de líneas).
+- Logs estructurados y correlacionados: busco un descuento por su identificador
+  y veo la historia completa, sin salto de servicio en servicio.
+
 ## 5. Métricas de éxito
 
 ### De producto
@@ -139,6 +155,7 @@ cuenta con acreditación y extracto observables.
 |---|---|
 | Consulta de cartera (empresa con miles de instrumentos) | p50 < 100 ms sin degradar al clearing |
 | Errores 5xx | < 0,1% |
+| Trazabilidad | 100% de operaciones financieras con traza completa entre servicios |
 | Suite de dominio (descuento, ledger, estados, idempotencia) | Verde obligatoria en CI |
 
 ## 6. Alcance v1 (in/out)
@@ -160,8 +177,9 @@ notificaciones, multi-empresa consolidado en una vista, escalado horizontal
 | Dinero inconsistente (descuentos/cobros duplicados o perdidos) | Alto | Idempotencia en toda operación financiera + ledger inmutable (RFC a crear) |
 | Estado divergente con el clearing | Alto | Espejo de cartera con sincronización y reconciliación contra COELSA |
 | Complejidad del descuento real (tasas, plazos, contragarantía) | Medio | Reglas de negocio acotadas en v1, explícitas en SPEC antes de codificar |
-| Cartera pesada (miles de instrumentos por empresa) | Medio | Consultas cacheadas + paginado, sin golpe repetido al clearing (RFC a crear) |
-| Costo de infra (dos productos, free tier) | Medio | Un solo despliegue nuevo con schemas separados por contexto (RFC a crear) |
+| Cartera pesada (miles de instrumentos por empresa) | Medio | Consultas cacheadas + paginado, sin golpe repetido al clearing (RFC-005) |
+| Costo de infra (dos productos, free tier) | Medio | Servicios nuevos solo en dev al inicio, spin-down del free tier y presupuesto de horas por ambiente (RFC-004) |
+| Operar un sistema distribuido a ciegas | Alto | Observabilidad desde el día 1: trazas, métricas y logs correlacionados (RFC-004) |
 
 ## 8. Trazabilidad PRD ↔ documentación técnica
 
@@ -173,3 +191,22 @@ notificaciones, multi-empresa consolidado en una vista, escalado horizontal
 | HU-06/07 | RFC-006 descuento y crédito (a crear) | ADR-003 |
 | HU-08 | RFC-006 | ADR-003, ADR-007 |
 | HU-09 | RFC-006 | — |
+| HU-10 | RFC-004 | — |
+
+## 9. Visión futura: descuento conversacional por IA (fuera de v1)
+
+El diferencial de producto: un asistente de IA que opera la autogestión del
+banco por conversación — "adelantame los cheques que vencen en julio" — usando
+el descuento vía MCP. Ningún banco de Argentina ofrece hoy negociación
+conversacional de cartera.
+
+Lo que v1 ya hace para que ese día sea barato:
+
+- **Contratos gruesos e idempotentes** consumibles por agentes, no solo por la
+  UI: la misma API sirve al front y al futuro chat.
+- **Cotizar antes de confirmar** (HU-06) es, literalmente, el par de
+  herramientas que un agente necesita: cotizar es lectura sin riesgo;
+  confirmar es una operación idempotente auditable.
+
+Lo que ese día exigirá y v1 no resuelve: autorización con **scopes separados**
+(cotizar ≠ ejecutar), consentimiento y auditoría de decisiones del agente.
