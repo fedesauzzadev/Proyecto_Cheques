@@ -82,4 +82,18 @@ export const estrategiaEcheq: EstrategiaEcheq = {
 
     return { ...errores, ...validarComunes(request, hoy) };
   },
+
+  construir(valores: Record<string, string>): CrearEcheqRequest {
+    return {
+      cud: (valores.cud ?? '').trim().toLowerCase(),
+      codigoBanco: (valores.codigoBanco ?? '').trim(),
+      numeroCuenta: (valores.numeroCuenta ?? '').trim(),
+      cuitLibrador: (valores.cuitLibrador ?? '').trim(),
+      cuitBeneficiario: (valores.cuitBeneficiario ?? '').trim(),
+      monto: Number(valores.monto),
+      moneda: valores.moneda === 'D' ? 'D' : 'P',
+      fechaEmision: valores.fechaEmision ?? '',
+      fechaDiferimiento: valores.fechaDiferimiento?.trim() ? valores.fechaDiferimiento : null,
+    };
+  },
 };

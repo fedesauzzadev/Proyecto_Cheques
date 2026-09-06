@@ -1,0 +1,68 @@
+import { Card, CardContent, CardHeader, CardTitle } from '@/presentation/ui/card';
+import type { Instrumento } from '@/domain/tipos';
+import EstadoBadge from '../consulta/EstadoBadge';
+import {
+  describirDiferimiento,
+  describirMotivo,
+  formatearFecha,
+  formatearMonto,
+} from '../consulta/formato';
+
+function Fila({ etiqueta, children }: { etiqueta: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1 py-2 sm:flex-row sm:items-baseline sm:gap-4">
+      <dt className="w-40 shrink-0 text-sm text-muted-foreground">{etiqueta}</dt>
+      <dd className="text-sm font-medium">{children}</dd>
+    </div>
+  );
+}
+
+export default function TarjetaDetalle({ item }: { item: Instrumento }) {
+  const esCheque = item.tipo === 'ChequeFisico';
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center gap-3">
+          {esCheque ? 'Cheque físico' : 'Echeq'}
+          <EstadoBadge estado={item.estado} />
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <dl className="divide-y">
+          <Fila etiqueta="Identificador">
+            <span className="font-mono text-xs">{item.identificador}</span>
+          </Fila>
+          <Fila etiqueta="Monto">{formatearMonto(item.monto, item.moneda)}</Fila>
+          <Fila etiqueta="CUIT librador">
+            <span className="font-mono">{item.cuitLibrador}</span>
+          </Fila>
+          <Fila etiqueta="CUIT beneficiario">
+            <span className="font-mono">{item.cuitBeneficiario}</span>
+          </Fila>
+          <Fila etiqueta="Fecha de emisión">{formatearFecha(item.fechaEmision)}</Fila>
+          <Fila etiqueta="Diferimiento">{describirDiferimiento(item.fechaDiferimiento)}</Fila>
+          <Fila etiqueta="Motivo de rechazo">{describirMotivo(item.motivoRechazo)}</Fila>
+          {esCheque ? (
+            <>
+              <Fila etiqueta="Banco">{item.desgloseCmc7.banco}</Fila>
+              <Fila etiqueta="Sucursal">{item.desgloseCmc7.sucursal}</Fila>
+              <Fila etiqueta="Código postal">{item.desgloseCmc7.codigoPostal}</Fila>
+              <Fila etiqueta="Número de cheque">{item.desgloseCmc7.numeroCheque}</Fila>
+              <Fila etiqueta="Número de cuenta">{item.desgloseCmc7.numeroCuenta}</Fila>
+            </>
+          ) : (
+            <>
+              <Fila etiqueta="CUD">
+                <span className="font-mono text-xs break-all">{item.cud}</span>
+              </Fila>
+              <Fila etiqueta="Código de banco">{item.codigoBanco}</Fila>
+              <Fila etiqueta="Número de cuenta">{item.numeroCuenta}</Fila>
+              <Fila etiqueta="Endosos">{item.cantidadEndosos}</Fila>
+            </>
+          )}
+        </dl>
+      </CardContent>
+    </Card>
+  );
+}
