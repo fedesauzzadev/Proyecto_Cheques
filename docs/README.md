@@ -31,6 +31,7 @@ PRD ─────────▶ RFC ─────────▶ ADR ──
 
 ### PRD
 - [PRD — Simulador COELSA y Consola de Instrumentos](PRD.md)
+- [PRD — Banco IrmaRios: banca de cartera para empresas](PRD-banco-irmarios.md)
 
 ### RFCs (`docs/rfc/`)
 | RFC | Título | Estado |
