@@ -1,3 +1,4 @@
+using IrmaRios.Cartera.Api;
 using IrmaRios.Cartera.Api.Middleware;
 using IrmaRios.Cartera.Application;
 using IrmaRios.Cartera.Application.CasosUso;

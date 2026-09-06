@@ -1,3 +1,4 @@
+using IrmaRios.Identidad.Api;
 using IrmaRios.Identidad.Api.Middleware;
 using IrmaRios.Identidad.Application;
 using IrmaRios.Identidad.Application.CasosUso;

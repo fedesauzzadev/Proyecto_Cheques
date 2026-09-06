@@ -1,6 +1,6 @@
 using IrmaRios.Identidad.Application.Puertos;
+using IrmaRios.Identidad.Domain;
 using IrmaRios.Identidad.Domain.Entidades;
-using IrmaRios.Identidad.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace IrmaRios.Identidad.Infrastructure.Persistence;

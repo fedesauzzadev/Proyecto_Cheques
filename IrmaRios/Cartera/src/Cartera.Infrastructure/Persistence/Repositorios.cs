@@ -16,21 +16,21 @@ public class CarteraRepository(CarteraDbContext db) : ICarteraRepository
 
     public Task<bool> ExisteEnCarteraAsync(TipoInstrumento tipo, string identificador, CancellationToken ct)
         => _db.Instrumentos.AnyAsync(
-            i => i.Tipo == tipo && i.Identificador == identificador && i.Estado == Domain.Entidades.EstadoCartera.EnCartera, ct);
+            i => i.Tipo == tipo && i.Identificador == identificador && i.Estado == Domain.EstadoCartera.EnCartera, ct);
 
     public async Task<Domain.Entidades.InstrumentoCartera?> ObtenerEnCarteraAsync(
         TipoInstrumento tipo, string identificador, CancellationToken ct)
         => await _db.Instrumentos.AsNoTracking()
             .FirstOrDefaultAsync(
                 i => i.Tipo == tipo && i.Identificador == identificador
-                     && i.Estado == Domain.Entidades.EstadoCartera.EnCartera, ct);
+                     && i.Estado == Domain.EstadoCartera.EnCartera, ct);
 
     public async Task<(IReadOnlyList<Domain.Entidades.InstrumentoCartera> Items, int TotalCount)> ListarPorTitularAsync(
         TipoInstrumento tipo, string cuitTitular, int page, int pageSize, CancellationToken ct)
     {
         var consulta = _db.Instrumentos.AsNoTracking()
             .Where(i => i.TitularCuit == cuitTitular && i.Tipo == tipo
-                        && i.Estado == Domain.Entidades.EstadoCartera.EnCartera)
+                        && i.Estado == Domain.EstadoCartera.EnCartera)
             .OrderBy(i => i.FechaVencimiento).ThenBy(i => i.Identificador);
 
         var totalCount = await consulta.CountAsync(ct);
