@@ -76,8 +76,8 @@ public class RepositorioEcheqsFake : IEcheqRepository
     public Task<Echeq?> ObtenerPorIdentificadorAsync(string identificador, CancellationToken ct)
         => Task.FromResult(Datos.FirstOrDefault(e => e.IdEcheq == identificador && e.Activo));
 
-    public Task<bool> ExisteCudAsync(string cud, CancellationToken ct)
-        => Task.FromResult(Datos.Any(e => e.Cud == cud));
+    public Task<bool> ExisteCmc7Async(string cmc7, CancellationToken ct)
+        => Task.FromResult(Datos.Any(e => e.Cmc7 == cmc7));
 
     public Task<bool> ExisteIdEcheqAsync(string idEcheq, CancellationToken ct)
         => Task.FromResult(Datos.Any(e => e.IdEcheq == idEcheq));
@@ -112,6 +112,19 @@ public class UnitOfWorkFake : IUnitOfWork
 public class GeneradorIdEcheqFijo : IGeneradorIdEcheq
 {
     private int _contador;
+    private const string Letras = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    public string Generar() => $"EQFAKE{++_contador:D12}";
+    // IDs deterministas de 11 letras para tests (AAA..., BAA..., etc.).
+    public string Generar()
+    {
+        _contador++;
+        var chars = new char[11];
+        var n = _contador;
+        for (var i = 10; i >= 0; i--)
+        {
+            chars[i] = Letras[n % 26];
+            n /= 26;
+        }
+        return new string(chars);
+    }
 }

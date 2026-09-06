@@ -1,19 +1,20 @@
 using System.Text.RegularExpressions;
 using Coelsa.Domain.Validaciones;
+using Coelsa.Domain.ValueObjects;
 
 namespace Coelsa.Domain.Entidades;
 
 /// <summary>
-/// Echeq identificado por su IDECHEQ alfanumérico asignado al crearlo (SPEC 5.2).
+/// Echeq identificado por su IDECHEQ alfabético de 11 letras asignado al crearlo (SPEC 5.2).
+/// Todo echeq lleva su CMC7 completo de 30 dígitos, como los cheques físicos.
 /// </summary>
 public class Echeq : IInstrumento
 {
-    public const int LongitudIdEcheq = 18;
-    public const int LongitudCud = 64;
+    public const int LongitudIdEcheq = 11;
 
     public Guid Id { get; private set; }
     public string IdEcheq { get; private set; } = null!;
-    public string Cud { get; private set; } = null!;
+    public string Cmc7 { get; private set; } = null!;
     public string CodigoBanco { get; private set; } = null!;
     public string NumeroCuenta { get; private set; } = null!;
     public string CuitLibrador { get; private set; } = null!;
@@ -36,7 +37,7 @@ public class Echeq : IInstrumento
 
     public static Echeq Crear(
         string idEcheq,
-        string cud,
+        string cmc7,
         string codigoBanco,
         string numeroCuenta,
         string cuitLibrador,
@@ -49,15 +50,12 @@ public class Echeq : IInstrumento
     {
         ValidacionesInstrumento.ValidarComunes(cuitLibrador, cuitBeneficiario, monto, fechaEmision, fechaDiferimiento, hoy);
 
-        if (idEcheq is null || !Regex.IsMatch(idEcheq, $"^[A-Z0-9]{{{LongitudIdEcheq}}}$"))
+        if (idEcheq is null || !Regex.IsMatch(idEcheq, $"^[A-Z]{{{LongitudIdEcheq}}}$"))
         {
-            throw new ValidacionException($"El IDECHEQ debe ser alfanumérico de {LongitudIdEcheq} caracteres (mayúsculas y dígitos).");
+            throw new ValidacionException($"El IDECHEQ debe ser alfabético de {LongitudIdEcheq} letras mayúsculas.");
         }
 
-        if (cud is null || !Regex.IsMatch(cud, @"^[0-9a-fA-F]{64}$"))
-        {
-            throw new ValidacionException("El CUD debe ser un hash SHA-256 expresado en 64 caracteres hexadecimales.");
-        }
+        var cmc7Vo = ValueObjects.Cmc7.Crear(cmc7);
 
         if (codigoBanco is null || !Regex.IsMatch(codigoBanco, @"^\d{3}$"))
         {
@@ -73,7 +71,7 @@ public class Echeq : IInstrumento
         {
             Id = Guid.NewGuid(),
             IdEcheq = idEcheq,
-            Cud = cud,
+            Cmc7 = cmc7Vo.Valor,
             CodigoBanco = codigoBanco,
             NumeroCuenta = numeroCuenta,
             CuitLibrador = cuitLibrador!,
@@ -113,4 +111,6 @@ public class Echeq : IInstrumento
         Activo = false;
         FechaBaja = DateTime.UtcNow;
     }
+
+    public DesgloseCmc7 DesglosarCmc7() => ValueObjects.Cmc7.Crear(Cmc7).Desglosar();
 }

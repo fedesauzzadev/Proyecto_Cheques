@@ -63,8 +63,8 @@ sección 2 del SPEC del backend y no se repiten acá.
   request builder viven en `estrategiaChequeFisico.ts` /
   `estrategiaEcheq.ts` detrás de una interfaz común.
 - Validación client-side espejo del backend: CUIT módulo 11, CMC7 de 30
-  dígitos con checksum de banco, CUD hex-64, monto > 0, `fechaEmision ≤
-hoy+1`, `fechaDiferimiento ≥ fechaEmision` si viene.
+  dígitos (físicos y echeqs), monto > 0, `fechaEmision ≤ hoy+1`,
+  `fechaDiferimiento ≥ fechaEmision` si viene.
 - Los errores del server (400/409) se muestran junto al campo
   correspondiente cuando el detalle lo permite, o como error general.
 
@@ -140,7 +140,7 @@ type MotivoRechazo = 11 | 12 | 21 | 25;   // FaltaDeFondos, CuentaInexistente, D
 type Moneda = 'P' | 'D';
 
 interface ChequeResponse  { identificador: string; /* CMC7 */ tipo: 'ChequeFisico'; desgloseCmc7: ...; ... }
-interface EcheqResponse   { identificador: string; /* IDECHEQ */ tipo: 'Echeq'; cud: string; ... }
+interface EcheqResponse   { identificador: string; /* IDECHEQ: 11 letras */ tipo: 'Echeq'; cmc7: string; desgloseCmc7: ...; ... }
 interface PagedResponse<T>{ items: T[]; page: number; pageSize: number; totalCount: number; totalPages: number; }
 ```
 
@@ -150,6 +150,7 @@ Módulos puros de dominio (sin dependencias, testeados con Vitest):
 | ------------------ | ------------------------------------------------------------ | ------------------------------------ |
 | `validadorCuit.ts` | Validación módulo 11 (mismo algoritmo y casos de test).      | `ValidadorCuit.cs`                   |
 | `desgloseCmc7.ts`  | Parse de banco/sucursal/CP/número/cuenta desde 30 dígitos.   | Desglose derivado en `Mapeadores.cs` |
+| `idecheq.ts`       | Formato del IDECHEQ: 11 letras mayúsculas.                   | Validación en `Echeq.Crear`          |
 | `transiciones.ts`  | Máquina de estados: transiciones válidas y si exigen motivo. | `TransicionesEstado.cs`              |
 | `estrategias/*.ts` | Strategy por tipo para formularios y requests.               | `Estrategias/*`                      |
 

@@ -28,10 +28,11 @@ public class ChequeResponse
 
 public class EcheqResponse
 {
-    /// <summary>El IDECHEQ: identificador de negocio del echeq.</summary>
+    /// <summary>El IDECHEQ (11 letras mayúsculas): identificador de negocio del echeq.</summary>
     public string Identificador { get; set; } = null!;
     public string Tipo { get; set; } = "Echeq";
-    public string Cud { get; set; } = null!;
+    public string Cmc7 { get; set; } = null!;
+    public DesgloseCmc7Dto DesgloseCmc7 { get; set; } = null!;
     public string CodigoBanco { get; set; } = null!;
     public string NumeroCuenta { get; set; } = null!;
     public string CuitLibrador { get; set; } = null!;

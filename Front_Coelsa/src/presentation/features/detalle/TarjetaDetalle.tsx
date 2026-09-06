@@ -53,11 +53,16 @@ export default function TarjetaDetalle({ item }: { item: Instrumento }) {
             </>
           ) : (
             <>
-              <Fila etiqueta="CUD">
-                <span className="font-mono text-xs break-all">{item.cud}</span>
+              <Fila etiqueta="CMC7">
+                <span className="font-mono text-xs">{item.cmc7}</span>
               </Fila>
+              <Fila etiqueta="Banco">{item.desgloseCmc7.banco}</Fila>
+              <Fila etiqueta="Sucursal">{item.desgloseCmc7.sucursal}</Fila>
+              <Fila etiqueta="Código postal">{item.desgloseCmc7.codigoPostal}</Fila>
+              <Fila etiqueta="Número de cheque">{item.desgloseCmc7.numeroCheque}</Fila>
+              <Fila etiqueta="Número de cuenta">{item.desgloseCmc7.numeroCuenta}</Fila>
               <Fila etiqueta="Código de banco">{item.codigoBanco}</Fila>
-              <Fila etiqueta="Número de cuenta">{item.numeroCuenta}</Fila>
+              <Fila etiqueta="Cuenta">{item.numeroCuenta}</Fila>
               <Fila etiqueta="Endosos">{item.cantidadEndosos}</Fila>
             </>
           )}

@@ -292,11 +292,11 @@ components:
       name: idecheq
       in: path
       required: true
-      description: Identificador alfanumérico del echeq asignado por el simulador.
+      description: IDECHEQ alfabético de 11 letras mayúsculas asignado por el simulador.
       schema:
         type: string
-        pattern: '^[A-Z0-9]{18}$'
-      example: EQ7F3A9B2C1D4E5F6A
+        pattern: '^[A-Z]{11}$'
+      example: ABCDEFGHIJK
     Cuit:
       name: cuit
       in: query
@@ -403,13 +403,13 @@ components:
 
     CrearEcheqRequest:
       type: object
-      required: [cud, codigoBanco, numeroCuenta, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision]
+      required: [cmc7, codigoBanco, numeroCuenta, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision]
       properties:
-        cud:
+        cmc7:
           type: string
-          pattern: '^[0-9a-fA-F]{64}$'
-          description: Clave Única Digital (SHA-256, 64 hex).
-          example: a3f5c9e10b2d47f68a9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2
+          pattern: '^\d{30}$'
+          description: CMC7 completo del echeq (banco+sucursal+código postal+número de cheque+cuenta). Único.
+          example: '011000114250000123400001234567'
         codigoBanco:
           type: string
           pattern: '^\d{3}$'
@@ -508,14 +508,36 @@ components:
       properties:
         identificador:
           type: string
-          description: El IDECHEQ asignado por el simulador.
-          example: EQ7F3A9B2C1D4E5F6A
+          pattern: '^[A-Z]{11}$'
+          description: El IDECHEQ (11 letras mayúsculas) asignado por el simulador.
+          example: ABCDEFGHIJK
         tipo:
           type: string
           enum: [Echeq]
-        cud:
+        cmc7:
           type: string
-          pattern: '^[0-9a-fA-F]{64}$'
+          pattern: '^\d{30}$'
+          description: CMC7 completo del echeq. Único.
+          example: '011000114250000123400001234567'
+        desgloseCmc7:
+          type: object
+          description: Tramos derivados del CMC7 (no se persisten).
+          properties:
+            banco:
+              type: string
+              example: '011'
+            sucursal:
+              type: string
+              example: '0001'
+            codigoPostal:
+              type: string
+              example: '1425'
+            numeroCheque:
+              type: string
+              example: '00001234'
+            numeroCuenta:
+              type: string
+              example: '00001234567'
         codigoBanco:
           type: string
           example: '011'

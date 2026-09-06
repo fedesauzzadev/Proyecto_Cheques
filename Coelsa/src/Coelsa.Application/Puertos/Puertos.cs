@@ -21,7 +21,7 @@ public interface IInstrumentoRepository<TEntidad>
 
 public interface IEcheqRepository : IInstrumentoRepository<Echeq>
 {
-    Task<bool> ExisteCudAsync(string cud, CancellationToken ct);
+    Task<bool> ExisteCmc7Async(string cmc7, CancellationToken ct);
 
     Task<bool> ExisteIdEcheqAsync(string idEcheq, CancellationToken ct);
 }

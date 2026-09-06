@@ -8,7 +8,7 @@ using Coelsa.Domain.Entidades;
 namespace Coelsa.Application.Estrategias;
 
 /// <summary>
-/// Estrategia de creación de echeqs: valida CUD bien formado y asigna el IDECHEQ generado (SPEC RF-01).
+/// Estrategia de creación de echeqs: valida CMC7 bien formado y asigna el IDECHEQ generado (SPEC RF-01).
 /// </summary>
 public class EcheqCreationStrategy(
     IEcheqRepository repository,
@@ -21,10 +21,10 @@ public class EcheqCreationStrategy(
     protected override TipoInstrumento Tipo => TipoInstrumento.Echeq;
 
     protected override string MensajeDuplicado(CrearEcheqRequest request)
-        => $"Ya existe un echeq con el CUD {request.Cud}.";
+        => $"Ya existe un echeq con el CMC7 {request.Cmc7}.";
 
     protected override Task<bool> ExisteDuplicadoDeNegocioAsync(CrearEcheqRequest request, CancellationToken ct)
-        => repository.ExisteCudAsync(request.Cud, ct);
+        => repository.ExisteCmc7Async(request.Cmc7, ct);
 
     protected override async Task<EcheqResponse> PersistirAsync(
         CrearEcheqRequest request, string idempotencyKey, string bodyHash, CancellationToken ct)
@@ -38,7 +38,7 @@ public class EcheqCreationStrategy(
 
         var echeq = Echeq.Crear(
             idEcheq,
-            request.Cud,
+            request.Cmc7,
             request.CodigoBanco,
             request.NumeroCuenta,
             request.CuitLibrador,

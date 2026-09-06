@@ -1,4 +1,5 @@
 // Espejo de EcheqCreationStrategy del backend.
+import { esCmc7Valido } from '../cmc7';
 import { validarComunes } from '../validacionesInstrumento';
 import type { ErroresCampo } from '../validacionesInstrumento';
 import type { CrearEcheqRequest } from '../tipos';
@@ -8,17 +9,17 @@ export const estrategiaEcheq: EstrategiaEcheq = {
   tipo: 'Echeq',
   titulo: 'Nuevo echeq',
   descripcion:
-    'Cheque electrónico identificado por su IDECHEQ (generado por el simulador al crear).',
+    'Cheque electrónico identificado por su IDECHEQ (11 letras, generado por el simulador al crear).',
   identificadorEtiqueta: 'IDECHEQ (generado por la API)',
 
   campos: [
     {
-      nombre: 'cud',
-      etiqueta: 'CUD',
+      nombre: 'cmc7',
+      etiqueta: 'CMC7',
       tipo: 'texto',
       obligatorio: true,
-      placeholder: 'a3f5… (64 caracteres hexadecimales)',
-      ayuda: 'Clave Única Digital: hash SHA-256 en hexadecimal.',
+      placeholder: '011000114250000123400001234567',
+      ayuda: 'banco(3) + sucursal(4) + código postal(4) + número de cheque(8) + cuenta(11)',
     },
     {
       nombre: 'codigoBanco',
@@ -68,8 +69,10 @@ export const estrategiaEcheq: EstrategiaEcheq = {
   validar(request: CrearEcheqRequest, hoy?: string): ErroresCampo {
     const errores: Record<string, string> = {};
 
-    if (!/^[0-9a-f]{64}$/i.test(request.cud)) {
-      errores.cud = 'El CUD debe ser un hash SHA-256 en hexadecimal (64 caracteres).';
+    if (!esCmc7Valido(request.cmc7)) {
+      errores.cmc7 =
+        `El CMC7 debe ser un código magnetizable de 30 dígitos ` +
+        '(banco + sucursal + código postal + número de cheque + cuenta).';
     }
 
     if (!/^\d{3}$/.test(request.codigoBanco)) {
@@ -85,7 +88,7 @@ export const estrategiaEcheq: EstrategiaEcheq = {
 
   construir(valores: Record<string, string>): CrearEcheqRequest {
     return {
-      cud: (valores.cud ?? '').trim().toLowerCase(),
+      cmc7: (valores.cmc7 ?? '').trim(),
       codigoBanco: (valores.codigoBanco ?? '').trim(),
       numeroCuenta: (valores.numeroCuenta ?? '').trim(),
       cuitLibrador: (valores.cuitLibrador ?? '').trim(),

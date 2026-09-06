@@ -12,8 +12,8 @@ public class EcheqConfiguracion : IEntityTypeConfiguration<Echeq>
 
         builder.HasKey(e => e.Id);
 
-        builder.Property(e => e.IdEcheq).HasMaxLength(18).IsRequired();
-        builder.Property(e => e.Cud).HasMaxLength(64).IsRequired();
+        builder.Property(e => e.IdEcheq).HasMaxLength(11).IsRequired();
+        builder.Property(e => e.Cmc7).HasMaxLength(30).IsRequired();
         builder.Property(e => e.CodigoBanco).HasMaxLength(3).IsRequired();
         builder.Property(e => e.NumeroCuenta).HasMaxLength(12).IsRequired();
         builder.Property(e => e.CuitLibrador).HasMaxLength(11).IsRequired();
@@ -23,7 +23,7 @@ public class EcheqConfiguracion : IEntityTypeConfiguration<Echeq>
         builder.Property(e => e.MotivoRechazo).HasConversion<int>();
 
         builder.HasIndex(e => e.IdEcheq).IsUnique();
-        builder.HasIndex(e => e.Cud).IsUnique();
+        builder.HasIndex(e => e.Cmc7).IsUnique();
 
         builder.HasIndex(e => new { e.CuitLibrador, e.FechaCreacion })
             .HasFilter("\"Activo\" = true")

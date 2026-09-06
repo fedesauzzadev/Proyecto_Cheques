@@ -23,7 +23,7 @@ la fuente de verdad simulada de los instrumentos negociables.
 | **Cheque físico** | Cheque de papel identificado por su CMC7. |
 | **Echeq** | Cheque electrónico emitido contra una cuenta bancaria, identificado por su IDECHEQ. |
 | **CMC7** | Código magnetizable de 30 dígitos de la banda inferior del cheque: banco + sucursal + código postal + número de cheque + número de cuenta. Identificador único del cheque físico y clave de búsqueda individual. |
-| **IDECHEQ** | Identificador alfanumérico único asignado al momento de crear el echeq. Clave de búsqueda individual del echeq (los cheques físicos no tienen IDECHEQ). |
+| **IDECHEQ** | Identificador alfabético de 11 letras mayúsculas asignado al momento de crear el echeq. Clave de búsqueda individual del echeq (los cheques físicos no tienen IDECHEQ). |
 | **CUD** | Clave Única Digital del echeq (hash SHA-256, 64 caracteres hexadecimales). |
 | **Librador** | Quien emite el cheque (persona/empresa con cuenta en un banco). |
 | **Beneficiario** | Quien puede cobrar/depositar el instrumento. |
@@ -37,7 +37,7 @@ la fuente de verdad simulada de los instrumentos negociables.
 - `POST /api/v1/echeqs` crea un **echeq**.
 - Cada tipo es creado por su **estrategia de creación** (patrón Strategy):
   - `ChequeFisicoCreationStrategy`: valida CMC7 único y bien formado (30 dígitos).
-  - `EcheqCreationStrategy`: valida CUD bien formado y genera el IDECHEQ.
+  - `EcheqCreationStrategy`: valida CMC7 bien formado y genera el IDECHEQ.
 - Ambas estrategias implementan una interfaz común `ICrearInstrumentoStrategy`.
 
 ### RF-02 — Idempotencia en creación
@@ -133,8 +133,8 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 | Campo | Tipo | Reglas |
 |---|---|---|
 | Id | Guid | PK interna, no expuesta en la API. |
-| IdEcheq | string(18) | Alfanumérico **generado por el simulador** al crear (ej: `EQ7F3A9B2C1D4E5F6A`). **Único.** Clave de búsqueda. |
-| Cud | string(64) | Hexadecimal (SHA-256). **Único.** |
+| IdEcheq | string(11) | Alfabético **generado por el simulador** al crear (11 letras mayúsculas). **Único.** Clave de búsqueda. |
+| Cmc7 | string(30) | CMC7 completo del echeq (mismo formato que el físico). **Único.** Se expone con su desglose derivado. |
 | CodigoBanco | string(3) | Banco librador. |
 | NumeroCuenta | string(12) | Cuenta librador. |
 | CuitLibrador / CuitBeneficiario | string(11) | CUIT/CUIL válido. |
@@ -164,7 +164,7 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 | cheques_fisicos | `cuit_beneficiario, activo` | Parcial `WHERE activo = true`. |
 | cheques_fisicos | `cmc7` | Único. |
 | echeqs | `id_echeq` | Único. |
-| echeqs | `cud` | Único. |
+| echeqs | `cmc7` | Único. |
 | echeqs | `cuit_librador, activo` / `cuit_beneficiario, activo` | Parciales `WHERE activo = true`. |
 | idempotency_keys | `key` | Único. |
 
@@ -195,7 +195,7 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 ### CrearEcheqRequest
 ```json
 {
-  "cud": "a3f5...64-hex-chars",
+  "cmc7": "011000114250000123400001234567",
   "codigoBanco": "011",
   "numeroCuenta": "000098765432",
   "cuitLibrador": "20123456789",
@@ -206,13 +206,13 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 }
 ```
 
-> El IDECHEQ **lo genera el simulador** al crear el echeq; no viene en el request.
-> La respuesta incluye el IDECHEQ asignado.
+> El IDECHEQ (11 letras mayúsculas) **lo genera el simulador** al crear el echeq; no viene en el request.
+> La respuesta incluye el IDECHEQ asignado junto al CMC7 y su desglose.
 
 ### Respuesta (ChequeResponse / EcheqResponse)
 ```json
 {
-  "identificador": "060000114250000123400001234567 | EQ7F3A9B2C1D4E5F6A",
+  "identificador": "060000114250000123400001234567 | ABCDEFGHIJK",
   "tipo": "ChequeFisico | Echeq",
   "estado": "Emitido",
   "motivoRechazo": null,

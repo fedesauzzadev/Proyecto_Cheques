@@ -108,13 +108,12 @@ public class EcheqCreationStrategyTests
     private EcheqCreationStrategy CrearStrategy()
         => new(_repositorio, _unitOfWork, _idempotencia, _cache, new GeneradorIdEcheqFijo());
 
-    private static string CudValido(string semilla) =>
-        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
-            System.Text.Encoding.UTF8.GetBytes(semilla))).ToLowerInvariant();
+    private static string Cmc7Valido(int i) =>
+        $"011{i:D4}1425{(100000 + i):D8}000098765{i:D2}";
 
-    private static CrearEcheqRequest RequestValido(string? cud = null) => new()
+    private static CrearEcheqRequest RequestValido(string? cmc7 = null) => new()
     {
-        Cud = cud ?? CudValido("echeq-estrategia"),
+        Cmc7 = cmc7 ?? Cmc7Valido(1),
         CodigoBanco = "011",
         NumeroCuenta = "000098765432",
         CuitLibrador = ValidadorCuit.Completar("2012345678"),
@@ -125,25 +124,24 @@ public class EcheqCreationStrategyTests
     };
 
     [Fact]
-    public async Task Crear_GeneraIdEcheqDe18Caracteres()
+    public async Task Crear_GeneraIdEcheqDe11Letras()
     {
         var resultado = await CrearStrategy().CrearAsync(
             RequestValido(), "77777777-7777-7777-7777-777777777777", default);
 
         Assert.False(resultado.EsReplay);
-        Assert.Equal(18, resultado.Respuesta.Identificador.Length);
-        Assert.StartsWith("EQ", resultado.Respuesta.Identificador);
+        Assert.Matches("^[A-Z]{11}$", resultado.Respuesta.Identificador);
         Assert.Single(_repositorio.Datos);
     }
 
     [Fact]
-    public async Task Crear_CudDuplicado_LanzaConflicto409()
+    public async Task Crear_Cmc7Duplicado_LanzaConflicto409()
     {
-        const string cudSemilla = "echeq-duplicado";
+        const int numero = 7;
 
-        await CrearStrategy().CrearAsync(RequestValido(CudValido(cudSemilla)), "88888888-8888-8888-8888-888888888888", default);
+        await CrearStrategy().CrearAsync(RequestValido(Cmc7Valido(numero)), "88888888-8888-8888-8888-888888888888", default);
 
         await Assert.ThrowsAsync<ConflictoDominioException>(
-            () => CrearStrategy().CrearAsync(RequestValido(CudValido(cudSemilla)), "99999999-9999-9999-9999-999999999999", default));
+            () => CrearStrategy().CrearAsync(RequestValido(Cmc7Valido(numero)), "99999999-9999-9999-9999-999999999999", default));
     }
 }

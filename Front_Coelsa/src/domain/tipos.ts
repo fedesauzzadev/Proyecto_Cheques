@@ -58,7 +58,8 @@ export interface ChequeResponse extends InstrumentoBase {
 
 export interface EcheqResponse extends InstrumentoBase {
   tipo: 'Echeq';
-  cud: string;
+  cmc7: string;
+  desgloseCmc7: DesgloseCmc7;
   codigoBanco: string;
   numeroCuenta: string;
   cantidadEndosos: number;
@@ -86,7 +87,7 @@ export interface CrearChequeFisicoRequest {
 }
 
 export interface CrearEcheqRequest {
-  cud: string;
+  cmc7: string;
   codigoBanco: string;
   numeroCuenta: string;
   cuitLibrador: string;

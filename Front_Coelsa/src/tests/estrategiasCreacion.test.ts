@@ -17,7 +17,7 @@ const chequeValido: CrearChequeFisicoRequest = {
 };
 
 const echeqValido: CrearEcheqRequest = {
-  cud: 'a'.repeat(64),
+  cmc7: '011000114250000123400001234567',
   codigoBanco: '011',
   numeroCuenta: '000098765432',
   cuitLibrador: '20123456786',
@@ -74,9 +74,9 @@ describe('estrategiaEcheq', () => {
     expect(estrategiaEcheq.validar(echeqValido, HOY)).toEqual({});
   });
 
-  it('rechaza CUD que no es hex-64', () => {
-    const errores = estrategiaEcheq.validar({ ...echeqValido, cud: 'xyz' }, HOY);
-    expect(errores.cud).toMatch(/SHA-256/);
+  it('rechaza CMC7 mal formado con el mensaje del dominio', () => {
+    const errores = estrategiaEcheq.validar({ ...echeqValido, cmc7: '123' }, HOY);
+    expect(errores.cmc7).toMatch(/30 dígitos/);
   });
 
   it('rechaza código de banco que no es de 3 dígitos', () => {
@@ -115,9 +115,9 @@ describe('construir (request builder)', () => {
     });
   });
 
-  it('arma el request del echeq en minúsculas para el CUD', () => {
+  it('arma el request del echeq normalizando el CMC7', () => {
     const request = estrategiaEcheq.construir({
-      cud: 'A'.repeat(64),
+      cmc7: ' 011000114250000123400001234567 ',
       codigoBanco: '011',
       numeroCuenta: '000098765432',
       cuitLibrador: '20123456786',
@@ -128,7 +128,7 @@ describe('construir (request builder)', () => {
       fechaDiferimiento: '',
     });
 
-    expect(request.cud).toBe('a'.repeat(64));
+    expect(request.cmc7).toBe('011000114250000123400001234567');
     expect(request.moneda).toBe('D');
     expect(estrategiaEcheq.validar(request, HOY)).toEqual({});
   });
@@ -137,9 +137,9 @@ describe('construir (request builder)', () => {
 describe('acumulación de errores', () => {
   it('acumula varios errores a la vez', () => {
     const errores = estrategiaEcheq.validar(
-      { ...echeqValido, cud: 'no', cuitLibrador: '1', monto: -5 },
+      { ...echeqValido, cmc7: 'no', cuitLibrador: '1', monto: -5 },
       HOY,
     );
-    expect(Object.keys(errores).sort()).toEqual(['cud', 'cuitLibrador', 'monto']);
+    expect(Object.keys(errores).sort()).toEqual(['cmc7', 'cuitLibrador', 'monto']);
   });
 });
