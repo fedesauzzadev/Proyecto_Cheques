@@ -27,6 +27,18 @@ public static class DependencyInjection
         services.AddScoped<EliminarChequeHandler>();
         services.AddScoped<EliminarEcheqHandler>();
 
+        // Fase A: aceptación, endosos, devoluciones y débito de custodias vencidas
+        services.AddScoped<AceptarEcheqHandler>();
+        services.AddScoped<ProponerEndosoHandler>();
+        services.AddScoped<ResolverEndosoHandler>();
+        services.AddScoped<AnularEndosoHandler>();
+        services.AddScoped<ListarEndososHandler>();
+        services.AddScoped<SolicitarDevolucionHandler>();
+        services.AddScoped<ResolverDevolucionHandler>();
+        services.AddScoped<AnularDevolucionHandler>();
+        services.AddScoped<ListarDevolucionesHandler>();
+        services.AddScoped<DepositarCustodiasVencidasHandler>();
+
         return services;
     }
 }

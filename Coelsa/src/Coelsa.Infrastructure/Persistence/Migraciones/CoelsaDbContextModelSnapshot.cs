@@ -95,6 +95,45 @@ namespace Coelsa.Infrastructure.Persistence.Migraciones
                     b.ToTable("cheques_fisicos", (string)null);
                 });
 
+            modelBuilder.Entity("Coelsa.Domain.Entidades.Devolucion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CuitSolicitante")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<Guid>("EcheqId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Motivo")
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)");
+
+                    b.Property<int>("Numero")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EcheqId", "Numero")
+                        .IsUnique()
+                        .HasDatabaseName("ix_devoluciones_echeq_numero_unicos");
+
+                    b.ToTable("devoluciones", (string)null);
+                });
+
             modelBuilder.Entity("Coelsa.Domain.Entidades.Echeq", b =>
                 {
                     b.Property<Guid>("Id")
@@ -177,6 +216,46 @@ namespace Coelsa.Infrastructure.Persistence.Migraciones
                     NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("CuitLibrador", "FechaCreacion"), new[] { "IdEcheq", "CuitBeneficiario", "Monto", "Moneda", "FechaEmision", "FechaDiferimiento", "FechaVencimiento", "Estado", "MotivoRechazo" });
 
                     b.ToTable("echeqs", (string)null);
+                });
+
+            modelBuilder.Entity("Coelsa.Domain.Entidades.Endoso", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CuitEndosante")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<string>("CuitEndosatario")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<Guid>("EcheqId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EcheqId", "Orden")
+                        .IsUnique()
+                        .HasDatabaseName("ix_endosos_echeq_orden_unicos");
+
+                    b.ToTable("endosos", (string)null);
                 });
 
             modelBuilder.Entity("Coelsa.Infrastructure.Persistence.EntradaIdempotencia", b =>

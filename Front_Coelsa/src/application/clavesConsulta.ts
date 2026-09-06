@@ -21,3 +21,11 @@ export function claveDetalle(tipo: TipoInstrumentoForm, identificador: string) {
 export function prefijoTipo(tipo: TipoInstrumentoForm) {
   return ['instrumentos', tipo] as const;
 }
+
+export function claveEndosos(idecheq: string) {
+  return ['instrumentos', 'Echeq', 'endosos', idecheq] as const;
+}
+
+export function claveDevoluciones(idecheq: string) {
+  return ['instrumentos', 'Echeq', 'devoluciones', idecheq] as const;
+}

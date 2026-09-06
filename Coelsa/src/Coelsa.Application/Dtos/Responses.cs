@@ -55,3 +55,21 @@ public class PagedResponse<T>
     public int TotalCount { get; set; }
     public int TotalPages => PageSize <= 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
 }
+
+public class EndosoResponse
+{
+    public int Orden { get; set; }
+    public string CuitEndosante { get; set; } = null!;
+    public string CuitEndosatario { get; set; } = null!;
+    public string Estado { get; set; } = null!;
+    public DateTime FechaCreacion { get; set; }
+}
+
+public class DevolucionResponse
+{
+    public int Numero { get; set; }
+    public string CuitSolicitante { get; set; } = null!;
+    public string? Motivo { get; set; }
+    public string Estado { get; set; } = null!;
+    public DateTime FechaCreacion { get; set; }
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "coelsa-carga": {
+      "type": "local",
+      "command": ["node", "server.mjs"],
+      "cwd": "Coelsa/tools/carga-masiva",
+      "enabled": true
+    }
+  }
+}

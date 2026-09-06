@@ -58,14 +58,14 @@ public sealed partial class ObtenerEcheqHandler(IInstrumentoRepository<Echeq> re
 {
     protected override string NombreRecurso => "ningún echeq";
 
-    [GeneratedRegex("^[A-Z0-9]{18}$")]
+    [GeneratedRegex("^[A-Z]{11}$")]
     private static partial Regex PatronIdEcheq();
 
     protected override void ValidarFormatoIdentificador(string identificador)
     {
         if (!PatronIdEcheq().IsMatch(identificador))
         {
-            throw new ValidacionException("El IDECHEQ debe ser alfanumérico de 18 caracteres (mayúsculas y dígitos).");
+            throw new ValidacionException("El IDECHEQ debe ser alfabético de 11 letras mayúsculas.");
         }
     }
 

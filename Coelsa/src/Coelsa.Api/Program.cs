@@ -15,6 +15,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddControllers();
 
+// Fase A: worker de débito automático de custodias vencidas (cada 5 minutos).
+builder.Services.AddHostedService<Coelsa.Api.Servicios.DepositadorCustodiasWorker>();
+
 // CORS para el front web (Front_Coelsa, static sites en Render): orígenes
 // configurables en Coelsa:AllowedOrigins (separados por ';').
 var origenesFront = builder.Configuration.GetValue<string>("Coelsa:AllowedOrigins")

@@ -119,6 +119,26 @@ sección 2 del SPEC del backend y no se repiten acá.
 - La URL deriva de la misma base que usa el cliente HTTP (`VITE_API_URL`):
   en prod carga el Swagger de la API prod, en dev el de la API dev.
 
+### RF-F10 — Aceptación y repudio (solo echeqs, espejo de RF-09)
+
+- Un echeq `Pendiente` muestra la sección de aceptación en vez de acciones de
+  estado: **Aceptar** (pasa a `Emitido`) o **Repudiar** (terminal).
+
+### RF-F11 — Cadena de endosos (solo echeqs, espejo de RF-10)
+
+- Timeline con orden, endosante → endosatario y badge por estado del endoso.
+- Formulario para proponer (CUIT validado módulo 11, solo en `Emitido`).
+- Cada propuesto se admite/repudia indicando con qué CUIT se actúa (debe ser
+  el endosatario) o se anula.
+
+### RF-F12 — Pedidos de devolución (solo echeqs, espejo de RF-12)
+
+- Formulario de solicitud (CUIT de la cadena + motivo opcional, solo en `Emitido`).
+- Cada pedido solicitado se acepta/rechaza con el CUIT del tenedor (prellenado)
+  o se anula.
+- La custodia se opera desde Acciones (gobernada por la máquina de estados);
+  en `EnCustodia` se muestra el aviso de débito automático al vencer.
+
 ## 4. Requisitos no funcionales
 
 | ID      | Requisito                                                                                                                                          |

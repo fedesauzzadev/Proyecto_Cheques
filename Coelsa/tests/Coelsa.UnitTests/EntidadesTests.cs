@@ -180,14 +180,73 @@ public class EntidadesTests
     }
 
     [Fact]
-    public void Echeq_Crear_QuedaEnEstadoEmitidoConCeroEndosos()
+    public void Echeq_Crear_QuedaPendienteConCeroEndosos()
     {
         var echeq = CrearEcheq();
 
-        Assert.Equal(EstadoInstrumento.Emitido, echeq.Estado);
+        Assert.Equal(EstadoInstrumento.Pendiente, echeq.Estado);
         Assert.Equal(0, echeq.CantidadEndosos);
         Assert.Equal("ABCDEFGHIJK", echeq.IdEcheq);
         Assert.Equal("011", echeq.DesglosarCmc7().Banco);
+    }
+
+    [Fact]
+    public void Echeq_Aceptar_PasaAEmitido()
+    {
+        var echeq = CrearEcheq();
+
+        echeq.Aceptar();
+
+        Assert.Equal(EstadoInstrumento.Emitido, echeq.Estado);
+    }
+
+    [Fact]
+    public void Echeq_Repudiar_PasaARepudiadoTerminal()
+    {
+        var echeq = CrearEcheq();
+
+        echeq.Repudiar();
+
+        Assert.Equal(EstadoInstrumento.Repudiado, echeq.Estado);
+        Assert.Empty(TransicionesEstado.DestinosDesde(EstadoInstrumento.Repudiado));
+    }
+
+    [Fact]
+    public void Echeq_Custodia_Rescate_VuelvenAEmitido()
+    {
+        var echeq = CrearEcheq();
+        echeq.Aceptar();
+
+        echeq.PonerEnCustodia();
+        Assert.Equal(EstadoInstrumento.EnCustodia, echeq.Estado);
+
+        echeq.Rescatar();
+        Assert.Equal(EstadoInstrumento.Emitido, echeq.Estado);
+    }
+
+    [Fact]
+    public void Echeq_DepositarPorVencimiento_SoloSiVencio()
+    {
+        var echeq = CrearEcheq();
+        echeq.Aceptar();
+        echeq.PonerEnCustodia();
+
+        Assert.Throws<TransicionInvalidaException>(() => echeq.DepositarPorVencimiento(Hoy));
+
+        echeq.DepositarPorVencimiento(Hoy.AddDays(31));
+        Assert.Equal(EstadoInstrumento.Depositado, echeq.Estado);
+    }
+
+    [Fact]
+    public void Echeq_CambiarTenencia_ValidaCuit()
+    {
+        var echeq = CrearEcheq();
+        echeq.Aceptar();
+
+        echeq.CambiarTenencia(CuitValido("3051122233"));
+
+        Assert.Equal(CuitValido("3051122233"), echeq.CuitBeneficiario);
+        Assert.Throws<ValidacionException>(() => echeq.CambiarTenencia("123"));
     }
 
     [Theory]

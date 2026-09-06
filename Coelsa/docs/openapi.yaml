@@ -249,6 +249,241 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
+  /api/v1/echeqs/{idecheq}/aceptacion:
+    post:
+      tags: [Echeqs]
+      operationId: aceptarEcheq
+      summary: Aceptación o repudio del beneficiario sobre un echeq pendiente
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AceptarEcheqRequest'
+      responses:
+        '200':
+          description: Aceptado (Emitido) o repudiado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EcheqResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs/{idecheq}/endosos:
+    get:
+      tags: [Echeqs]
+      operationId: listarEndosos
+      summary: Cadena de endosos del echeq para trazabilidad
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      responses:
+        '200':
+          description: Cadena ordenada por orden.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EndosoResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Echeqs]
+      operationId: proponerEndoso
+      summary: Propone un endoso nominativo a un CUIT (pendiente de admisión)
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProponerEndosoRequest'
+      responses:
+        '201':
+          description: Endoso propuesto.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndosoResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs/{idecheq}/endosos/{orden}:
+    get:
+      tags: [Echeqs]
+      operationId: obtenerEndoso
+      summary: Obtiene un endoso por su orden en la cadena
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+        - $ref: '#/components/parameters/OrdenEndoso'
+      responses:
+        '200':
+          description: Endoso encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndosoResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Echeqs]
+      operationId: anularEndoso
+      summary: Anulación de un endoso propuesto por el endosante
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+        - $ref: '#/components/parameters/OrdenEndoso'
+      responses:
+        '204':
+          description: Endoso anulado.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs/{idecheq}/endosos/{orden}/admision:
+    post:
+      tags: [Echeqs]
+      operationId: resolverEndoso
+      summary: Admisión o repudio de un endoso propuesto (solo el endosatario)
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+        - $ref: '#/components/parameters/OrdenEndoso'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolverEndosoRequest'
+      responses:
+        '200':
+          description: Endoso admitido o repudiado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EndosoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs/{idecheq}/devoluciones:
+    get:
+      tags: [Echeqs]
+      operationId: listarDevoluciones
+      summary: Pedidos de devolución del echeq para trazabilidad
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      responses:
+        '200':
+          description: Pedidos ordenados por número.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DevolucionResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Echeqs]
+      operationId: solicitarDevolucion
+      summary: Solicita la devolución del echeq (cualquier integrante de la cadena)
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitarDevolucionRequest'
+      responses:
+        '201':
+          description: Pedido solicitado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevolucionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs/{idecheq}/devoluciones/{numero}:
+    get:
+      tags: [Echeqs]
+      operationId: obtenerDevolucion
+      summary: Obtiene un pedido de devolución por su número
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+        - $ref: '#/components/parameters/NumeroDevolucion'
+      responses:
+        '200':
+          description: Pedido encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevolucionResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Echeqs]
+      operationId: anularDevolucion
+      summary: Anulación de un pedido solicitado por el solicitante
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+        - $ref: '#/components/parameters/NumeroDevolucion'
+      responses:
+        '204':
+          description: Pedido anulado.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs/{idecheq}/devoluciones/{numero}/resolucion:
+    post:
+      tags: [Echeqs]
+      operationId: resolverDevolucion
+      summary: Aceptación o rechazo del pedido por el tenedor actual
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+        - $ref: '#/components/parameters/NumeroDevolucion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolverDevolucionRequest'
+      responses:
+        '200':
+          description: Pedido aceptado o rechazado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevolucionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
   /health:
     get:
       tags: [Health]
@@ -297,6 +532,26 @@ components:
         type: string
         pattern: '^[A-Z]{11}$'
       example: ABCDEFGHIJK
+    OrdenEndoso:
+      name: orden
+      in: path
+      required: true
+      description: Orden del endoso en la cadena (1-based).
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+      example: 1
+    NumeroDevolucion:
+      name: numero
+      in: path
+      required: true
+      description: Número del pedido de devolución (1-based).
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+      example: 1
     Cuit:
       name: cuit
       in: query
@@ -343,7 +598,7 @@ components:
           schema:
             $ref: '#/components/schemas/ProblemDetail'
     Conflict:
-      description: Conflicto — CMC7/CUD duplicado con key distinta, o misma Idempotency-Key con body distinto.
+      description: Conflicto — CMC7/IDECHEQ duplicado con key distinta, misma Idempotency-Key con body distinto, o tope de endosos/pedido pendiente.
       content:
         application/problem+json:
           schema:
@@ -449,6 +704,93 @@ components:
             - $ref: '#/components/schemas/MotivoRechazo'
           nullable: true
           description: Obligatorio si estado = Rechazado; prohibido en cualquier otro estado.
+
+    AceptarEcheqRequest:
+      type: object
+      required: [aceptada]
+      properties:
+        aceptada:
+          type: boolean
+          description: true = acepta (pasa a Emitido); false = repudia (terminal).
+
+    ProponerEndosoRequest:
+      type: object
+      required: [cuitEndosatario]
+      properties:
+        cuitEndosatario:
+          $ref: '#/components/schemas/Cuit'
+
+    ResolverEndosoRequest:
+      type: object
+      required: [admitido, cuit]
+      properties:
+        admitido:
+          type: boolean
+          description: true = admite (entra en vigencia); false = repudia.
+        cuit:
+          $ref: '#/components/schemas/Cuit'
+          description: CUIT de quien resuelve; debe ser el endosatario.
+
+    SolicitarDevolucionRequest:
+      type: object
+      required: [cuitSolicitante]
+      properties:
+        cuitSolicitante:
+          $ref: '#/components/schemas/Cuit'
+          description: Integrante de la cadena distinto del tenedor actual.
+        motivo:
+          type: string
+          maxLength: 280
+          nullable: true
+
+    ResolverDevolucionRequest:
+      type: object
+      required: [aceptada, cuitResolutor]
+      properties:
+        aceptada:
+          type: boolean
+          description: true = acepta (la tenencia vuelve al solicitante); false = rechaza.
+        cuitResolutor:
+          $ref: '#/components/schemas/Cuit'
+          description: Debe ser el tenedor actual.
+
+    EndosoResponse:
+      type: object
+      properties:
+        orden:
+          type: integer
+          format: int32
+          example: 1
+        cuitEndosante:
+          $ref: '#/components/schemas/Cuit'
+        cuitEndosatario:
+          $ref: '#/components/schemas/Cuit'
+        estado:
+          type: string
+          enum: [Propuesto, Vigente, Repudiado, Anulado, Revertido]
+        fechaCreacion:
+          type: string
+          format: date-time
+
+    DevolucionResponse:
+      type: object
+      properties:
+        numero:
+          type: integer
+          format: int32
+          example: 1
+        cuitSolicitante:
+          $ref: '#/components/schemas/Cuit'
+        motivo:
+          type: string
+          maxLength: 280
+          nullable: true
+        estado:
+          type: string
+          enum: [Solicitada, Aceptada, Rechazada, Anulada]
+        fechaCreacion:
+          type: string
+          format: date-time
 
     ChequeResponse:
       type: object
@@ -620,7 +962,8 @@ components:
 
     EstadoInstrumento:
       type: string
-      enum: [Emitido, Depositado, Compensado, Rechazado, Anulado, Pagado]
+      enum: [Pendiente, Emitido, Depositado, Compensado, Rechazado, Anulado, Pagado, Repudiado, EnCustodia]
+      description: Pendiente, Repudiado y EnCustodia son exclusivos de echeqs.
 
     MotivoRechazo:
       type: integer

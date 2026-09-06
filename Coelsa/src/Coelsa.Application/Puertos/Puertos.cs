@@ -24,6 +24,35 @@ public interface IEcheqRepository : IInstrumentoRepository<Echeq>
     Task<bool> ExisteCmc7Async(string cmc7, CancellationToken ct);
 
     Task<bool> ExisteIdEcheqAsync(string idEcheq, CancellationToken ct);
+
+    /// <summary>Echeqs activos en custodia cuya fecha de vencimiento ya pasó.</summary>
+    Task<IReadOnlyList<Echeq>> ListarCustodiasVencidasAsync(DateOnly hoy, CancellationToken ct);
+}
+
+/// <summary>
+/// Puerto de persistencia de endosos de echeq (adaptado por EF Core).
+/// </summary>
+public interface IEndosoRepository
+{
+    Task<IReadOnlyList<Endoso>> ListarPorEcheqAsync(Guid echeqId, CancellationToken ct);
+
+    Task<Endoso?> ObtenerPorOrdenAsync(Guid echeqId, int orden, CancellationToken ct);
+
+    void Agregar(Endoso endoso);
+}
+
+/// <summary>
+/// Puerto de persistencia de pedidos de devolución de echeqs (adaptado por EF Core).
+/// </summary>
+public interface IDevolucionRepository
+{
+    Task<IReadOnlyList<Devolucion>> ListarPorEcheqAsync(Guid echeqId, CancellationToken ct);
+
+    Task<Devolucion?> ObtenerPorNumeroAsync(Guid echeqId, int numero, CancellationToken ct);
+
+    Task<bool> ExisteSolicitadaAsync(Guid echeqId, CancellationToken ct);
+
+    void Agregar(Devolucion devolucion);
 }
 
 public interface IUnitOfWork

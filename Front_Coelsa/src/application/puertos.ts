@@ -5,7 +5,9 @@ import type {
   ChequeResponse,
   CrearChequeFisicoRequest,
   CrearEcheqRequest,
+  Devolucion,
   EcheqResponse,
+  Endoso,
   PagedResponse,
 } from '@/domain/tipos';
 
@@ -57,4 +59,30 @@ export interface EstadoSalud {
 /** Puerto de salud del backend (RF-07 ↔ RF-F08). */
 export interface IPuertoSalud {
   consultar(senal?: AbortSignal): Promise<EstadoSalud>;
+}
+
+/** Puerto de aceptación de echeqs pendientes (RF-F10, espejo de RF-09). */
+export interface IPuertoAceptacion {
+  aceptar(idecheq: string, aceptada: boolean): Promise<EcheqResponse>;
+}
+
+/** Puerto de endosos de echeqs (RF-F11, espejo de RF-10). */
+export interface IPuertoEndosos {
+  listar(idecheq: string, senal?: AbortSignal): Promise<Endoso[]>;
+  proponer(idecheq: string, cuitEndosatario: string): Promise<Endoso>;
+  resolver(idecheq: string, orden: number, admitido: boolean, cuit: string): Promise<Endoso>;
+  anular(idecheq: string, orden: number): Promise<void>;
+}
+
+/** Puerto de pedidos de devolución de echeqs (RF-F12, espejo de RF-12). */
+export interface IPuertoDevoluciones {
+  listar(idecheq: string, senal?: AbortSignal): Promise<Devolucion[]>;
+  solicitar(idecheq: string, cuitSolicitante: string, motivo?: string | null): Promise<Devolucion>;
+  resolver(
+    idecheq: string,
+    numero: number,
+    aceptada: boolean,
+    cuitResolutor: string,
+  ): Promise<Devolucion>;
+  anular(idecheq: string, numero: number): Promise<void>;
 }

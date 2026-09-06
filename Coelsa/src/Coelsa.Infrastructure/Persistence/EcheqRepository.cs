@@ -20,6 +20,14 @@ public class EcheqRepository(CoelsaDbContext db) : IEcheqRepository
     public Task<bool> ExisteIdEcheqAsync(string idEcheq, CancellationToken ct)
         => _db.Echeqs.AsNoTracking().AnyAsync(e => e.IdEcheq == idEcheq, ct);
 
+    public async Task<IReadOnlyList<Echeq>> ListarCustodiasVencidasAsync(DateOnly hoy, CancellationToken ct)
+        => await _db.Echeqs
+            .Where(e => e.Activo
+                && e.Estado == Domain.EstadoInstrumento.EnCustodia
+                && e.FechaVencimiento <= hoy)
+            .OrderBy(e => e.FechaVencimiento)
+            .ToListAsync(ct);
+
     public async Task<(IReadOnlyList<Echeq> Items, int TotalCount)> ListarPorCuitAsync(
         string cuit, int page, int pageSize, CancellationToken ct)
     {

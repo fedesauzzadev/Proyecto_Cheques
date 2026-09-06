@@ -11,6 +11,8 @@ public class CoelsaDbContext(DbContextOptions<CoelsaDbContext> options) : DbCont
 {
     public DbSet<ChequeFisico> ChequesFisicos => Set<ChequeFisico>();
     public DbSet<Echeq> Echeqs => Set<Echeq>();
+    public DbSet<Endoso> Endosos => Set<Endoso>();
+    public DbSet<Devolucion> Devoluciones => Set<Devolucion>();
     public DbSet<EntradaIdempotencia> IdempotenciaKeys => Set<EntradaIdempotencia>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

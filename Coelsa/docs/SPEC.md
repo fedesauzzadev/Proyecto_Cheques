@@ -90,6 +90,43 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 - Al exceder → `429 Too Many Requests` con header `Retry-After`.
 - Configurable por `appsettings` (por defecto: 100 req/min por IP en consultas).
 
+### RF-09 — Aceptación y repudio del echeq (solo echeqs)
+- El echeq nace en `Pendiente`; el beneficiario lo acepta o repudia:
+  `POST /api/v1/echeqs/{idecheq}/aceptacion` con `{ "aceptada": true/false }`.
+- Aceptar → `Emitido` (entra en circulación); repudiar → `Repudiado` (terminal).
+- Desde `Pendiente` también se puede `Anular` (el librador lo anula si no fue aceptado).
+- Aceptar/repudiar algo no pendiente → `422`; inexistente → `404`.
+
+### RF-10 — Endosos del echeq hasta 100 (solo echeqs)
+- `POST /api/v1/echeqs/{idecheq}/endosos` con `{ "cuitEndosatario" }` propone un
+  endoso nominativo (el endosante es siempre el tenedor actual). Solo en `Emitido`.
+- `POST /api/v1/echeqs/{idecheq}/endosos/{orden}/admision` con
+  `{ "admitido": true/false, "cuit" }`: solo el endosatario resuelve. Al admitir,
+  la tenencia pasa al endosatario y se refresca `CantidadEndosos`.
+- `DELETE /api/v1/echeqs/{idecheq}/endosos/{orden}` anula un endoso propuesto.
+- `GET /api/v1/echeqs/{idecheq}/endosos` devuelve la cadena ordenada (trazabilidad).
+- Ciclo por endoso: `Propuesto → Vigente / Repudiado`; `Propuesto → Anulado`;
+  una devolución aceptada deja en `Revertido` los posteriores al solicitante.
+- Tope de 100 endosos no anulados → `409`.
+
+### RF-11 — Custodia, rescate y débito automático (solo echeqs)
+- `EnCustodia` vía `PATCH /api/v1/echeqs/{idecheq}/estado` (`Emitido ⇄ EnCustodia`).
+- En custodia no se puede endosar ni pasar a otro estado salvo rescate o depósito.
+- Un worker (cada 5 minutos) deposita automáticamente los echeqs en custodia
+  vencidos (`EnCustodia → Depositado`); nunca tumba el host (errores logueados).
+- `DELETE` de la custodia no existe: salir es `Rescatar` (vuelve a `Emitido`).
+
+### RF-12 — Pedidos de devolución del echeq (solo echeqs)
+- `POST /api/v1/echeqs/{idecheq}/devoluciones` con `{ "cuitSolicitante", "motivo?" }`:
+  cualquier integrante de la cadena distinto del tenedor actual puede pedirla
+  (solo en `Emitido`, sin otro pedido pendiente → `409` si lo hay).
+- `POST /api/v1/echeqs/{idecheq}/devoluciones/{numero}/resolucion` con
+  `{ "aceptada", "cuitResolutor" }`: solo el tenedor actual resuelve. Al aceptar,
+  la tenencia vuelve al solicitante y se revierten los endosos vigentes
+  posteriores a su posición.
+- `DELETE /api/v1/echeqs/{idecheq}/devoluciones/{numero}` anula un pedido solicitado.
+- `GET /api/v1/echeqs/{idecheq}/devoluciones` lista los pedidos para trazabilidad.
+
 ## 4. Requisitos no funcionales
 
 | ID | Requisito |
@@ -142,7 +179,20 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 | CantidadEndosos | int | Default 0 (informativo en v1). |
 
 ### 5.3 Estados (dominio compartido)
-`Emitido, Depositado, Compensado, Rechazado, Anulado, Pagado`
+`Emitido, Depositado, Compensado, Rechazado, Anulado, Pagado` más los exclusivos
+de echeq (Fase A): `Pendiente` (nace así, espera aceptación), `Repudiado`
+(terminal, el beneficiario no lo aceptó) y `EnCustodia` (en poder del banco).
+
+```
+Pendiente ──► Emitido ──► Depositado ──► Compensado ──► Pagado
+   │  │          │            │
+   │  │          │            └──► Rechazado
+   │  │          ├──► EnCustodia ⇄ Emitido
+   │  │          │         │
+   │  │          │         └──► (worker) Depositado al vencer
+   │  └──► Anulado
+   └──► Repudiado
+```
 
 ### 5.4 Motivos de rechazo (códigos de rechazo, subconjunto real)
 | Código | Motivo |
@@ -166,10 +216,26 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 | echeqs | `cmc7` | Único. |
 | echeqs | `cuit_librador, activo` / `cuit_beneficiario, activo` | Parciales `WHERE activo = true`. |
 | idempotency_keys | `key` | Único. |
+| endosos | `echeq_id, orden` | Único (orden secuencial por echeq). |
+| devoluciones | `echeq_id, numero` | Único (numeración secuencial por echeq). |
 
 - Los índices parciales solo indexan instrumentos **vigentes** (los dados de baja
   no consumen el índice).
 - `COUNT(*)` del paginado se resuelve con cache (ver sección 7), no por query en cada página.
+
+### 5.6 Endosos y devoluciones (Fase A, solo echeqs)
+
+| Entidad | Campo | Tipo | Reglas |
+|---|---|---|---|
+| Endoso | EcheqId | Guid | FK al echeq. |
+| Endoso | Orden | int | Secuencial por echeq (1-based, sin reuso). Único junto a EcheqId. |
+| Endoso | CuitEndosante / CuitEndosatario | string(11) | CUIT/CUIL válido; distintos entre sí. El endosante es siempre el tenedor actual. |
+| Endoso | Estado | enum | `Propuesto, Vigente, Repudiado, Anulado, Revertido` (ver RF-10). |
+| Devolucion | EcheqId | Guid | FK al echeq. |
+| Devolucion | Numero | int | Secuencial por echeq (1-based). Único junto a EcheqId. |
+| Devolucion | CuitSolicitante | string(11) | CUIT/CUIL válido; integrante de la cadena distinto del tenedor. |
+| Devolucion | Motivo | string(280)? | Opcional. |
+| Devolucion | Estado | enum | `Solicitada, Aceptada, Rechazada, Anulada` (ver RF-12). |
 
 ## 6. Contrato de API (DTOs)
 
@@ -278,12 +344,13 @@ docs/
   - `redis`: redis:7.
 - Migraciones EF Core aplicadas al arranque en desarrollo (incluyen índices de 5.5).
 - Rate limiting (RF-08) y compresión de respuesta configurados en el host.
-- `seed` de ~30 instrumentos variados para probar paginación y cache.
+- `seed` de ~30 instrumentos variados para probar paginación y cache, más vitrina
+  Fase A (echeq pendiente, repudiado, en custodia, con cadena de endosos y devolución solicitada).
 
 ## 10. Fuera de alcance (v1)
 
-- Firmas digitales reales del echeq (el CUD se acepta como válido si es hex-64).
-- Endosos y particiones del echeq (solo contador informativo).
+- Firmas digitales reales del echeq.
+- Débito automático con garantías de liquidación (el worker deposita sin neteo multilateral).
 - Autenticación/autorización (se agregará como API Key en el servicio "banco").
 - Ciclo completo de compensación entre bancos (futuro microservicio).
 - Conciliación y liquidación.
