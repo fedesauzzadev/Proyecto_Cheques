@@ -90,7 +90,51 @@ describe('estrategiaEcheq', () => {
       estrategiaEcheq.validar({ ...echeqValido, numeroCuenta: '123' }, HOY).numeroCuenta,
     ).toMatch(/12 dígitos/);
   });
+});
 
+describe('construir (request builder)', () => {
+  it('arma el request del cheque normalizando strings y monto', () => {
+    const request = estrategiaChequeFisico.construir({
+      cmc7: ' 060000114250000123400001234567 ',
+      cuitLibrador: '20123456786',
+      cuitBeneficiario: '27876543219',
+      monto: '150000.50',
+      moneda: 'P',
+      fechaEmision: '2026-09-05',
+      fechaDiferimiento: '',
+    });
+
+    expect(request).toEqual({
+      cmc7: '060000114250000123400001234567',
+      cuitLibrador: '20123456786',
+      cuitBeneficiario: '27876543219',
+      monto: 150000.5,
+      moneda: 'P',
+      fechaEmision: '2026-09-05',
+      fechaDiferimiento: null,
+    });
+  });
+
+  it('arma el request del echeq en minúsculas para el CUD', () => {
+    const request = estrategiaEcheq.construir({
+      cud: 'A'.repeat(64),
+      codigoBanco: '011',
+      numeroCuenta: '000098765432',
+      cuitLibrador: '20123456786',
+      cuitBeneficiario: '30511222334',
+      monto: '250000',
+      moneda: 'D',
+      fechaEmision: '2026-09-05',
+      fechaDiferimiento: '',
+    });
+
+    expect(request.cud).toBe('a'.repeat(64));
+    expect(request.moneda).toBe('D');
+    expect(estrategiaEcheq.validar(request, HOY)).toEqual({});
+  });
+});
+
+describe('acumulación de errores', () => {
   it('acumula varios errores a la vez', () => {
     const errores = estrategiaEcheq.validar(
       { ...echeqValido, cud: 'no', cuitLibrador: '1', monto: -5 },

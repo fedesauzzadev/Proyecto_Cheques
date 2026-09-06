@@ -22,6 +22,8 @@ export interface EstrategiaCreacion<TRequest> {
   readonly campos: readonly CampoFormulario<TRequest>[];
   /** Devuelve errores por campo; objeto vacío = request válido. */
   validar(request: TRequest, hoy?: string): ErroresCampo;
+  /** Arma el request desde los valores crudos del formulario (strings). */
+  construir(valores: Record<string, string>): TRequest;
 }
 
 export type EstrategiaChequeFisico = EstrategiaCreacion<CrearChequeFisicoRequest>;

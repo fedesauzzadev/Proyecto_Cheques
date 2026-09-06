@@ -63,4 +63,16 @@ export const estrategiaChequeFisico: EstrategiaChequeFisico = {
 
     return { ...errores, ...validarComunes(request, hoy) };
   },
+
+  construir(valores: Record<string, string>): CrearChequeFisicoRequest {
+    return {
+      cmc7: (valores.cmc7 ?? '').trim(),
+      cuitLibrador: (valores.cuitLibrador ?? '').trim(),
+      cuitBeneficiario: (valores.cuitBeneficiario ?? '').trim(),
+      monto: Number(valores.monto),
+      moneda: valores.moneda === 'D' ? 'D' : 'P',
+      fechaEmision: valores.fechaEmision ?? '',
+      fechaDiferimiento: valores.fechaDiferimiento?.trim() ? valores.fechaDiferimiento : null,
+    };
+  },
 };

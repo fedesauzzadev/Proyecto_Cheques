@@ -1,8 +1,34 @@
+// Página de creación (RF-F03, espejo de RF-01): delega todo en la estrategia
+// del tipo (campos, validaciones y request builder).
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/presentation/ui/card';
 import type { TipoInstrumentoForm } from '@/domain/estrategias/estrategiaCreacion';
-import PaginaEnConstruccion from '../comun/PaginaEnConstruccion';
+import { estrategiaChequeFisico, estrategiaEcheq } from '@/domain/estrategias';
+import type { IPuertoInstrumentos } from '@/application/puertos';
+import FormularioChequeFisico from './FormularioChequeFisico';
+import FormularioEcheq from './FormularioEcheq';
 
-// Stub del paso 5: la implementación real llega en el paso 6.
-export default function PaginaCreacion({ tipo }: { tipo: TipoInstrumentoForm }) {
-  const titulo = tipo === 'ChequeFisico' ? 'Nuevo cheque físico' : 'Nuevo echeq';
-  return <PaginaEnConstruccion titulo={titulo} />;
+interface Props {
+  tipo: TipoInstrumentoForm;
+  puerto?: IPuertoInstrumentos;
+}
+
+export default function PaginaCreacion({ tipo, puerto }: Props) {
+  const esCheque = tipo === 'ChequeFisico';
+  const estrategia = esCheque ? estrategiaChequeFisico : estrategiaEcheq;
+
+  return (
+    <Card className="mx-auto max-w-2xl">
+      <CardHeader>
+        <CardTitle>{estrategia.titulo}</CardTitle>
+        <CardDescription>{estrategia.descripcion}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {esCheque ? (
+          <FormularioChequeFisico puerto={puerto} />
+        ) : (
+          <FormularioEcheq puerto={puerto} />
+        )}
+      </CardContent>
+    </Card>
+  );
 }
