@@ -21,6 +21,7 @@ public class ChequeResponse
     public string Moneda { get; set; } = null!;
     public DateOnly FechaEmision { get; set; }
     public DateOnly? FechaDiferimiento { get; set; }
+    public DateOnly FechaVencimiento { get; set; }
     public string Estado { get; set; } = null!;
     public int? MotivoRechazo { get; set; }
     public DateTime FechaCreacion { get; set; }
@@ -39,6 +40,7 @@ public class EcheqResponse
     public string Moneda { get; set; } = null!;
     public DateOnly FechaEmision { get; set; }
     public DateOnly? FechaDiferimiento { get; set; }
+    public DateOnly FechaVencimiento { get; set; }
     public string Estado { get; set; } = null!;
     public int? MotivoRechazo { get; set; }
     public int CantidadEndosos { get; set; }

@@ -57,6 +57,7 @@ export default function TablaInstrumentos({ tipo, pagina, actualizando = false }
               <TableHead className="text-right">Monto</TableHead>
               <TableHead>Emisión</TableHead>
               <TableHead>Diferimiento</TableHead>
+              <TableHead>Vencimiento</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Motivo rechazo</TableHead>
             </TableRow>
@@ -79,6 +80,7 @@ export default function TablaInstrumentos({ tipo, pagina, actualizando = false }
                 </TableCell>
                 <TableCell>{formatearFecha(item.fechaEmision)}</TableCell>
                 <TableCell>{describirDiferimiento(item.fechaDiferimiento)}</TableCell>
+                <TableCell>{formatearFecha(item.fechaVencimiento)}</TableCell>
                 <TableCell>
                   <EstadoBadge estado={item.estado} />
                 </TableCell>

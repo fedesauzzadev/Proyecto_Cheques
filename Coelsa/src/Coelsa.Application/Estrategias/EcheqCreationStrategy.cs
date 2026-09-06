@@ -44,7 +44,8 @@ public class EcheqCreationStrategy(
             request.Monto,
             Mapeadores.CodigoAMoneda(request.Moneda),
             request.FechaEmision,
-            request.FechaDiferimiento);
+            request.FechaDiferimiento,
+            request.FechaVencimiento);
 
         repository.Agregar(echeq);
 

@@ -42,6 +42,7 @@ export default function TarjetaDetalle({ item }: { item: Instrumento }) {
           </Fila>
           <Fila etiqueta="Fecha de emisión">{formatearFecha(item.fechaEmision)}</Fila>
           <Fila etiqueta="Diferimiento">{describirDiferimiento(item.fechaDiferimiento)}</Fila>
+          <Fila etiqueta="Vencimiento">{formatearFecha(item.fechaVencimiento)}</Fila>
           <Fila etiqueta="Motivo de rechazo">{describirMotivo(item.motivoRechazo)}</Fila>
           {esCheque ? (
             <>

@@ -40,7 +40,7 @@ sección 2 del SPEC del backend y no se repiten acá.
 - Input de CUIT con **validación módulo 11 client-side** (mismo algoritmo que
   el backend): si es inválido, se informa sin llamar a la API.
 - Tabla con columnas: identificador, librador, beneficiario, monto, moneda,
-  fecha emisión, diferimiento, estado, motivo de rechazo.
+  fecha emisión, diferimiento, vencimiento, estado, motivo de rechazo.
 - Paginado sobre el envelope `PagedResponse` (`page`, `pageSize`,
   `totalCount`, `totalPages`), selector de tamaño de página (10/25/50) y
   navegación; al cambiar de página no se pierde el scroll ni la data previa
@@ -64,7 +64,8 @@ sección 2 del SPEC del backend y no se repiten acá.
   `estrategiaEcheq.ts` detrás de una interfaz común.
 - Validación client-side espejo del backend: CUIT módulo 11, CMC7 de 30
   dígitos (físicos y echeqs), monto > 0, `fechaEmision ≤ hoy+1`,
-  `fechaDiferimiento ≥ fechaEmision` si viene.
+  `fechaDiferimiento ≥ fechaEmision` si viene, `fechaVencimiento` obligatoria y
+  posterior a emisión (y a diferimiento si viene).
 - Los errores del server (400/409) se muestran junto al campo
   correspondiente cuando el detalle lo permite, o como error general.
 

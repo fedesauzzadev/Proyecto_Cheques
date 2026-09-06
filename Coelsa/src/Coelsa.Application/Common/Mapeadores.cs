@@ -28,6 +28,7 @@ public static class Mapeadores
             Moneda = MonedaACodigo(cheque.Moneda),
             FechaEmision = cheque.FechaEmision,
             FechaDiferimiento = cheque.FechaDiferimiento,
+            FechaVencimiento = cheque.FechaVencimiento,
             Estado = cheque.Estado.ToString(),
             MotivoRechazo = (int?)cheque.MotivoRechazo,
             FechaCreacion = cheque.FechaCreacion
@@ -57,6 +58,7 @@ public static class Mapeadores
             Moneda = MonedaACodigo(echeq.Moneda),
             FechaEmision = echeq.FechaEmision,
             FechaDiferimiento = echeq.FechaDiferimiento,
+            FechaVencimiento = echeq.FechaVencimiento,
             Estado = echeq.Estado.ToString(),
             MotivoRechazo = (int?)echeq.MotivoRechazo,
             CantidadEndosos = echeq.CantidadEndosos,

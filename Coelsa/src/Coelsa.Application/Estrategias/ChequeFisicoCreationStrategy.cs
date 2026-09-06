@@ -35,7 +35,8 @@ public class ChequeFisicoCreationStrategy(
             request.Monto,
             Mapeadores.CodigoAMoneda(request.Moneda),
             request.FechaEmision,
-            request.FechaDiferimiento);
+            request.FechaDiferimiento,
+            request.FechaVencimiento);
 
         repository.Agregar(cheque);
 

@@ -21,6 +21,7 @@ public class Echeq : IInstrumento
     public Moneda Moneda { get; private set; }
     public DateOnly FechaEmision { get; private set; }
     public DateOnly? FechaDiferimiento { get; private set; }
+    public DateOnly FechaVencimiento { get; private set; }
     public EstadoInstrumento Estado { get; private set; }
     public MotivoRechazo? MotivoRechazo { get; private set; }
     public int CantidadEndosos { get; private set; }
@@ -42,9 +43,10 @@ public class Echeq : IInstrumento
         Moneda moneda,
         DateOnly fechaEmision,
         DateOnly? fechaDiferimiento,
+        DateOnly fechaVencimiento,
         DateOnly? hoy = null)
     {
-        ValidacionesInstrumento.ValidarComunes(cuitLibrador, cuitBeneficiario, monto, fechaEmision, fechaDiferimiento, hoy);
+        ValidacionesInstrumento.ValidarComunes(cuitLibrador, cuitBeneficiario, monto, fechaEmision, fechaDiferimiento, fechaVencimiento, hoy);
 
         if (idEcheq is null || !Regex.IsMatch(idEcheq, $"^[A-Z]{{{LongitudIdEcheq}}}$"))
         {
@@ -64,6 +66,7 @@ public class Echeq : IInstrumento
             Moneda = moneda,
             FechaEmision = fechaEmision,
             FechaDiferimiento = fechaDiferimiento,
+            FechaVencimiento = fechaVencimiento,
             Estado = EstadoInstrumento.Emitido,
             CantidadEndosos = 0,
             FechaCreacion = DateTime.UtcNow,

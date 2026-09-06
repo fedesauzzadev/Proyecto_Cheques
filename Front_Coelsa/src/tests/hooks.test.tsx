@@ -24,6 +24,7 @@ const cheque = {
   monto: 150000.5,
   moneda: 'P',
   fechaEmision: '2026-09-05',
+  fechaVencimiento: '2026-10-05',
   fechaDiferimiento: null,
   fechaCreacion: '2026-09-05T10:00:00Z',
 };
@@ -44,6 +45,7 @@ const echeq = {
   monto: 250000,
   moneda: 'D',
   fechaEmision: '2026-09-05',
+  fechaVencimiento: '2026-10-05',
   fechaDiferimiento: null,
   estado: 'Emitido',
   motivoRechazo: null,
@@ -154,6 +156,7 @@ describe('useCrearInstrumento (RF-F04)', () => {
           monto: 150000.5,
           moneda: 'P',
           fechaEmision: '2026-09-05',
+          fechaVencimiento: '2026-10-05',
         },
         idempotencyKey: 'guid-de-intento-1',
       });

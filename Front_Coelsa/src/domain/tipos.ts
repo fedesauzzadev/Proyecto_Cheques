@@ -48,6 +48,7 @@ export interface InstrumentoBase {
   moneda: Moneda;
   fechaEmision: string; // YYYY-MM-DD
   fechaDiferimiento: string | null;
+  fechaVencimiento: string; // YYYY-MM-DD, posterior a emisión (y a diferimiento si viene)
   fechaCreacion: string; // ISO-8601
 }
 
@@ -82,6 +83,7 @@ export interface CrearChequeFisicoRequest {
   moneda: Moneda;
   fechaEmision: string;
   fechaDiferimiento?: string | null;
+  fechaVencimiento: string;
 }
 
 export interface CrearEcheqRequest {
@@ -92,6 +94,7 @@ export interface CrearEcheqRequest {
   moneda: Moneda;
   fechaEmision: string;
   fechaDiferimiento?: string | null;
+  fechaVencimiento: string;
 }
 
 export interface CambiarEstadoRequest {

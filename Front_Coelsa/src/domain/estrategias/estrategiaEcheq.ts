@@ -50,6 +50,13 @@ export const estrategiaEcheq: EstrategiaEcheq = {
       tipo: 'fecha',
       obligatorio: false,
     },
+    {
+      nombre: 'fechaVencimiento',
+      etiqueta: 'Fecha de vencimiento',
+      tipo: 'fecha',
+      obligatorio: true,
+      ayuda: 'Posterior a la emisión (y al diferimiento si viene).',
+    },
   ],
 
   validar(request: CrearEcheqRequest, hoy?: string): ErroresCampo {
@@ -73,6 +80,7 @@ export const estrategiaEcheq: EstrategiaEcheq = {
       moneda: valores.moneda === 'D' ? 'D' : 'P',
       fechaEmision: valores.fechaEmision ?? '',
       fechaDiferimiento: valores.fechaDiferimiento?.trim() ? valores.fechaDiferimiento : null,
+      fechaVencimiento: valores.fechaVencimiento ?? '',
     };
   },
 };

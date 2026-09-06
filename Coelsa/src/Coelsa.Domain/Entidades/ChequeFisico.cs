@@ -17,6 +17,7 @@ public class ChequeFisico : IInstrumento
     public Moneda Moneda { get; private set; }
     public DateOnly FechaEmision { get; private set; }
     public DateOnly? FechaDiferimiento { get; private set; }
+    public DateOnly FechaVencimiento { get; private set; }
     public EstadoInstrumento Estado { get; private set; }
     public MotivoRechazo? MotivoRechazo { get; private set; }
     public DateTime FechaCreacion { get; private set; }
@@ -36,9 +37,10 @@ public class ChequeFisico : IInstrumento
         Moneda moneda,
         DateOnly fechaEmision,
         DateOnly? fechaDiferimiento,
+        DateOnly fechaVencimiento,
         DateOnly? hoy = null)
     {
-        ValidacionesInstrumento.ValidarComunes(cuitLibrador, cuitBeneficiario, monto, fechaEmision, fechaDiferimiento, hoy);
+        ValidacionesInstrumento.ValidarComunes(cuitLibrador, cuitBeneficiario, monto, fechaEmision, fechaDiferimiento, fechaVencimiento, hoy);
         var cmc7Vo = ValueObjects.Cmc7.Crear(cmc7);
 
         return new ChequeFisico
@@ -51,6 +53,7 @@ public class ChequeFisico : IInstrumento
             Moneda = moneda,
             FechaEmision = fechaEmision,
             FechaDiferimiento = fechaDiferimiento,
+            FechaVencimiento = fechaVencimiento,
             Estado = EstadoInstrumento.Emitido,
             FechaCreacion = DateTime.UtcNow,
             Activo = true

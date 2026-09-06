@@ -24,6 +24,7 @@ public class ListarInstrumentosHandlerTests
             Moneda.Pesos,
             new DateOnly(2026, 9, 1),
             null,
+            new DateOnly(2026, 10, 1),
             new DateOnly(2026, 9, 5));
 
     [Fact]

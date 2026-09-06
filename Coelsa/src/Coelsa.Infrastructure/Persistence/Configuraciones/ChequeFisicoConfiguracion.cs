@@ -34,6 +34,7 @@ public class ChequeFisicoConfiguracion : IEntityTypeConfiguration<ChequeFisico>
                 nameof(ChequeFisico.Moneda),
                 nameof(ChequeFisico.FechaEmision),
                 nameof(ChequeFisico.FechaDiferimiento),
+                nameof(ChequeFisico.FechaVencimiento),
                 nameof(ChequeFisico.Estado),
                 nameof(ChequeFisico.MotivoRechazo))
             .HasDatabaseName("ix_cheques_cuit_librador_activos");
