@@ -82,6 +82,12 @@ public class RepositorioEcheqsFake : IEcheqRepository
     public Task<bool> ExisteIdEcheqAsync(string idEcheq, CancellationToken ct)
         => Task.FromResult(Datos.Any(e => e.IdEcheq == idEcheq));
 
+    public Task<IReadOnlyList<Echeq>> ListarCustodiasVencidasAsync(DateOnly hoy, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<Echeq>>(Datos
+            .Where(e => e.Activo && e.Estado == EstadoInstrumento.EnCustodia && e.FechaVencimiento <= hoy)
+            .OrderBy(e => e.FechaVencimiento)
+            .ToList());
+
     public Task<(IReadOnlyList<Echeq> Items, int TotalCount)> ListarPorCuitAsync(
         string cuit, int page, int pageSize, CancellationToken ct)
     {
@@ -96,6 +102,41 @@ public class RepositorioEcheqsFake : IEcheqRepository
     }
 
     public void Agregar(Echeq entidad) => Datos.Add(entidad);
+}
+
+public class RepositorioEndososFake : IEndosoRepository
+{
+    public List<Endoso> Datos { get; } = [];
+
+    public Task<IReadOnlyList<Endoso>> ListarPorEcheqAsync(Guid echeqId, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<Endoso>>(Datos
+            .Where(e => e.EcheqId == echeqId)
+            .OrderBy(e => e.Orden)
+            .ToList());
+
+    public Task<Endoso?> ObtenerPorOrdenAsync(Guid echeqId, int orden, CancellationToken ct)
+        => Task.FromResult(Datos.FirstOrDefault(e => e.EcheqId == echeqId && e.Orden == orden));
+
+    public void Agregar(Endoso endoso) => Datos.Add(endoso);
+}
+
+public class RepositorioDevolucionesFake : IDevolucionRepository
+{
+    public List<Devolucion> Datos { get; } = [];
+
+    public Task<IReadOnlyList<Devolucion>> ListarPorEcheqAsync(Guid echeqId, CancellationToken ct)
+        => Task.FromResult<IReadOnlyList<Devolucion>>(Datos
+            .Where(d => d.EcheqId == echeqId)
+            .OrderBy(d => d.Numero)
+            .ToList());
+
+    public Task<Devolucion?> ObtenerPorNumeroAsync(Guid echeqId, int numero, CancellationToken ct)
+        => Task.FromResult(Datos.FirstOrDefault(d => d.EcheqId == echeqId && d.Numero == numero));
+
+    public Task<bool> ExisteSolicitadaAsync(Guid echeqId, CancellationToken ct)
+        => Task.FromResult(Datos.Any(d => d.EcheqId == echeqId && d.Estado == EstadoDevolucion.Solicitada));
+
+    public void Agregar(Devolucion devolucion) => Datos.Add(devolucion);
 }
 
 public class UnitOfWorkFake : IUnitOfWork

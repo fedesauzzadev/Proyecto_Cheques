@@ -10,6 +10,12 @@ describe('esTransicionValida', () => {
     ['Depositado', 'Compensado'],
     ['Depositado', 'Rechazado'],
     ['Compensado', 'Pagado'],
+    ['Pendiente', 'Emitido'],
+    ['Pendiente', 'Repudiado'],
+    ['Pendiente', 'Anulado'],
+    ['Emitido', 'EnCustodia'],
+    ['EnCustodia', 'Emitido'],
+    ['EnCustodia', 'Depositado'],
   ] as const)('acepta la transición del diagrama %s → %s', (desde, hacia) => {
     expect(esTransicionValida(desde, hacia)).toBe(true);
   });
@@ -21,6 +27,13 @@ describe('esTransicionValida', () => {
     ['Rechazado', 'Compensado'], // terminal
     ['Pagado', 'Emitido'], // terminal
     ['Compensado', 'Rechazado'], // solo desde Depositado
+    ['Pendiente', 'Depositado'], // sin aceptar
+    ['Pendiente', 'Pagado'],
+    ['EnCustodia', 'Compensado'],
+    ['EnCustodia', 'Rechazado'],
+    ['EnCustodia', 'Anulado'],
+    ['Repudiado', 'Emitido'], // terminal
+    ['Depositado', 'EnCustodia'], // solo desde Emitido
   ] as const)('rechaza la transición inválida %s → %s', (desde, hacia) => {
     expect(esTransicionValida(desde, hacia)).toBe(false);
   });
@@ -29,6 +42,7 @@ describe('esTransicionValida', () => {
     expect(destinosDesde('Anulado')).toEqual([]);
     expect(destinosDesde('Rechazado')).toEqual([]);
     expect(destinosDesde('Pagado')).toEqual([]);
+    expect(destinosDesde('Repudiado')).toEqual([]);
   });
 });
 

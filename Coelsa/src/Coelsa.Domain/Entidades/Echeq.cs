@@ -67,11 +67,78 @@ public class Echeq : IInstrumento
             FechaEmision = fechaEmision,
             FechaDiferimiento = fechaDiferimiento,
             FechaVencimiento = fechaVencimiento,
-            Estado = EstadoInstrumento.Emitido,
+            Estado = EstadoInstrumento.Pendiente,
             CantidadEndosos = 0,
             FechaCreacion = DateTime.UtcNow,
             Activo = true
         };
+    }
+
+    /// <summary>Aceptación del beneficiario: el echeq pendiente entra en circulación.</summary>
+    public void Aceptar()
+    {
+        if (!Activo)
+        {
+            throw new TransicionInvalidaException("No se puede aceptar un echeq dado de baja.");
+        }
+
+        CambiarEstado(EstadoInstrumento.Emitido, null);
+    }
+
+    /// <summary>Repudio del beneficiario: rechaza el echeq pendiente (terminal).</summary>
+    public void Repudiar()
+    {
+        if (!Activo)
+        {
+            throw new TransicionInvalidaException("No se puede repudiar un echeq dado de baja.");
+        }
+
+        CambiarEstado(EstadoInstrumento.Repudiado, null);
+    }
+
+    /// <summary>Pone el echeq en custodia del banco (solo desde Emitido).</summary>
+    public void PonerEnCustodia() => CambiarEstado(EstadoInstrumento.EnCustodia, null);
+
+    /// <summary>Rescate: saca el echeq de custodia y lo devuelve a Emitido.</summary>
+    public void Rescatar() => CambiarEstado(EstadoInstrumento.Emitido, null);
+
+    /// <summary>
+    /// Débito automático al vencer (worker): deposita un echeq en custodia cuya
+    /// fecha de vencimiento ya pasó.
+    /// </summary>
+    public void DepositarPorVencimiento(DateOnly hoy)
+    {
+        if (FechaVencimiento > hoy)
+        {
+            throw new TransicionInvalidaException(
+                $"El echeq con IDECHEQ {IdEcheq} aún no venció (vence el {FechaVencimiento:yyyy-MM-dd}).");
+        }
+
+        CambiarEstado(EstadoInstrumento.Depositado, null);
+    }
+
+    /// <summary>Cambia la tenencia al admitir un endoso o aceptar una devolución.</summary>
+    public void CambiarTenencia(string nuevoCuitBeneficiario)
+    {
+        if (!Activo)
+        {
+            throw new TransicionInvalidaException("No se puede cambiar la tenencia de un echeq dado de baja.");
+        }
+
+        if (!Validaciones.ValidadorCuit.EsValido(nuevoCuitBeneficiario))
+        {
+            throw new ValidacionException($"El CUIT/CUIL del nuevo beneficiario '{nuevoCuitBeneficiario}' no es válido (se espera 11 dígitos con verificador módulo 11).");
+        }
+
+        CuitBeneficiario = nuevoCuitBeneficiario;
+        FechaModificacion = DateTime.UtcNow;
+    }
+
+    /// <summary>Refresca el contador informativo con los endosos vigentes.</summary>
+    public void FijarCantidadEndosos(int cantidad)
+    {
+        CantidadEndosos = cantidad;
+        FechaModificacion = DateTime.UtcNow;
     }
 
     public void CambiarEstado(EstadoInstrumento nuevoEstado, MotivoRechazo? motivoRechazo)

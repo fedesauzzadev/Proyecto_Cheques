@@ -3,12 +3,17 @@
 import type {
   CambiarEstadoRequest,
   ChequeResponse,
+  Devolucion,
   EcheqResponse,
+  Endoso,
   PagedResponse,
 } from '@/domain/tipos';
 import type {
   ConsultaPaginada,
   EstadoSalud,
+  IPuertoAceptacion,
+  IPuertoDevoluciones,
+  IPuertoEndosos,
   IPuertoInstrumentos,
   IPuertoSalud,
   ResultadoCreacion,
@@ -86,5 +91,64 @@ export const apiInstrumentos: IPuertoInstrumentos = {
 export const apiSalud: IPuertoSalud = {
   consultar(senal) {
     return pedir<EstadoSalud>('/health', { senal }).then((r) => r.datos);
+  },
+};
+
+export const apiAceptacion: IPuertoAceptacion = {
+  aceptar(idecheq, aceptada) {
+    return pedir<EcheqResponse>(`${BASE}/echeqs/${idecheq}/aceptacion`, {
+      metodo: 'POST',
+      cuerpo: { aceptada },
+    }).then((r) => r.datos);
+  },
+};
+
+export const apiEndosos: IPuertoEndosos = {
+  listar(idecheq, senal) {
+    return pedir<Endoso[]>(`${BASE}/echeqs/${idecheq}/endosos`, { senal }).then((r) => r.datos);
+  },
+
+  proponer(idecheq, cuitEndosatario) {
+    return pedir<Endoso>(`${BASE}/echeqs/${idecheq}/endosos`, {
+      metodo: 'POST',
+      cuerpo: { cuitEndosatario },
+    }).then((r) => r.datos);
+  },
+
+  resolver(idecheq, orden, admitido, cuit) {
+    return pedir<Endoso>(`${BASE}/echeqs/${idecheq}/endosos/${orden}/admision`, {
+      metodo: 'POST',
+      cuerpo: { admitido, cuit },
+    }).then((r) => r.datos);
+  },
+
+  async anular(idecheq, orden) {
+    await pedir<void>(`${BASE}/echeqs/${idecheq}/endosos/${orden}`, { metodo: 'DELETE' });
+  },
+};
+
+export const apiDevoluciones: IPuertoDevoluciones = {
+  listar(idecheq, senal) {
+    return pedir<Devolucion[]>(`${BASE}/echeqs/${idecheq}/devoluciones`, { senal }).then(
+      (r) => r.datos,
+    );
+  },
+
+  solicitar(idecheq, cuitSolicitante, motivo) {
+    return pedir<Devolucion>(`${BASE}/echeqs/${idecheq}/devoluciones`, {
+      metodo: 'POST',
+      cuerpo: { cuitSolicitante, motivo: motivo ?? null },
+    }).then((r) => r.datos);
+  },
+
+  resolver(idecheq, numero, aceptada, cuitResolutor) {
+    return pedir<Devolucion>(`${BASE}/echeqs/${idecheq}/devoluciones/${numero}/resolucion`, {
+      metodo: 'POST',
+      cuerpo: { aceptada, cuitResolutor },
+    }).then((r) => r.datos);
+  },
+
+  async anular(idecheq, numero) {
+    await pedir<void>(`${BASE}/echeqs/${idecheq}/devoluciones/${numero}`, { metodo: 'DELETE' });
   },
 };

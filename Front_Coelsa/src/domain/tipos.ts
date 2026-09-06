@@ -2,12 +2,15 @@
 // Fuente de verdad del contrato: Coelsa/docs/openapi.yaml del backend.
 
 export const ESTADOS_INSTRUMENTO = [
+  'Pendiente',
   'Emitido',
   'Depositado',
   'Compensado',
   'Rechazado',
   'Anulado',
   'Pagado',
+  'Repudiado',
+  'EnCustodia',
 ] as const;
 export type EstadoInstrumento = (typeof ESTADOS_INSTRUMENTO)[number];
 
@@ -100,4 +103,32 @@ export interface CrearEcheqRequest {
 export interface CambiarEstadoRequest {
   estado: EstadoInstrumento;
   motivoRechazo?: MotivoRechazo | null;
+}
+
+export const ESTADOS_ENDOSO = [
+  'Propuesto',
+  'Vigente',
+  'Repudiado',
+  'Anulado',
+  'Revertido',
+] as const;
+export type EstadoEndoso = (typeof ESTADOS_ENDOSO)[number];
+
+export const ESTADOS_DEVOLUCION = ['Solicitada', 'Aceptada', 'Rechazada', 'Anulada'] as const;
+export type EstadoDevolucion = (typeof ESTADOS_DEVOLUCION)[number];
+
+export interface Endoso {
+  orden: number;
+  cuitEndosante: string;
+  cuitEndosatario: string;
+  estado: EstadoEndoso;
+  fechaCreacion: string;
+}
+
+export interface Devolucion {
+  numero: number;
+  cuitSolicitante: string;
+  motivo: string | null;
+  estado: EstadoDevolucion;
+  fechaCreacion: string;
 }

@@ -66,6 +66,30 @@ public static class Mapeadores
         };
     }
 
+    public static EndosoResponse AResponse(this Endoso endoso)
+    {
+        return new EndosoResponse
+        {
+            Orden = endoso.Orden,
+            CuitEndosante = endoso.CuitEndosante,
+            CuitEndosatario = endoso.CuitEndosatario,
+            Estado = endoso.Estado.ToString(),
+            FechaCreacion = endoso.FechaCreacion
+        };
+    }
+
+    public static DevolucionResponse AResponse(this Devolucion devolucion)
+    {
+        return new DevolucionResponse
+        {
+            Numero = devolucion.Numero,
+            CuitSolicitante = devolucion.CuitSolicitante,
+            Motivo = devolucion.Motivo,
+            Estado = devolucion.Estado.ToString(),
+            FechaCreacion = devolucion.FechaCreacion
+        };
+    }
+
     public static string MonedaACodigo(Moneda moneda) => moneda == Moneda.Pesos ? "P" : "D";
 
     public static Moneda CodigoAMoneda(string codigo) => codigo == "P" ? Moneda.Pesos : Moneda.Dolares;

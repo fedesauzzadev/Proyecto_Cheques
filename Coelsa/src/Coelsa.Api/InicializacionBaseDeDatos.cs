@@ -106,11 +106,63 @@ public static class InicializacionBaseDeDatos
                     diferimiento,
                     (diferimiento ?? emision).AddDays(30),
                     hoy);
+                echeq.Aceptar();
 
                 AplicarEstadoDemo(echeq, i);
 
                 db.Echeqs.Add(echeq);
             }
+
+            // Vitrina Fase A: estados y cadenas que el flujo normal no genera solo.
+            // CMC7 con CP 2078 para no cruzarse con el resto del seed.
+            string Cmc7Extra(int n) =>
+                $"034{n:D4}{2078:D4}{(n + 60):D8}{(11111111100 + n):D11}";
+
+            string IdUnicoExtra()
+            {
+                string id;
+                do
+                {
+                    id = generadorIdEcheq.Generar();
+                }
+                while (!idsEcheq.Add(id));
+                return id;
+            }
+
+            // 1. Pendiente de aceptación.
+            db.Echeqs.Add(Echeq.Crear(
+                IdUnicoExtra(), Cmc7Extra(1), cuits[0], cuits[1], 100_000m, Moneda.Pesos,
+                hoy, null, hoy.AddDays(30), hoy));
+
+            // 2. Repudiado por el beneficiario.
+            var repudiado = Echeq.Crear(
+                IdUnicoExtra(), Cmc7Extra(2), cuits[0], cuits[1], 200_000m, Moneda.Pesos,
+                hoy, null, hoy.AddDays(30), hoy);
+            repudiado.Repudiar();
+            db.Echeqs.Add(repudiado);
+
+            // 3. En custodia.
+            var custodia = Echeq.Crear(
+                IdUnicoExtra(), Cmc7Extra(3), cuits[0], cuits[1], 300_000m, Moneda.Pesos,
+                hoy, null, hoy.AddDays(30), hoy);
+            custodia.Aceptar();
+            custodia.PonerEnCustodia();
+            db.Echeqs.Add(custodia);
+
+            // 4. Con cadena de endosos (2 vigentes) y devolución solicitada.
+            var cadena = Echeq.Crear(
+                IdUnicoExtra(), Cmc7Extra(4), cuits[0], cuits[1], 400_000m, Moneda.Dolares,
+                hoy, null, hoy.AddDays(30), hoy);
+            cadena.Aceptar();
+            db.Echeqs.Add(cadena);
+            var endoso1 = Endoso.Proponer(cadena.Id, 1, cuits[1], cuits[2]);
+            endoso1.Admitir();
+            var endoso2 = Endoso.Proponer(cadena.Id, 2, cuits[2], cuits[3]);
+            endoso2.Admitir();
+            cadena.CambiarTenencia(cuits[3]);
+            cadena.FijarCantidadEndosos(2);
+            db.Endosos.AddRange(endoso1, endoso2);
+            db.Devoluciones.Add(Devolucion.Solicitar(cadena.Id, 1, cuits[0], "Devolución de demostración"));
         }
 
         await db.SaveChangesAsync();
