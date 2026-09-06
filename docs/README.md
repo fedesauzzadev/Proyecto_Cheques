@@ -9,6 +9,7 @@ decisiones de diseño. La documentación **por servicio** vive en cada subsistem
 | `Coelsa/docs/SPEC.md` | Especificación de requisitos del backend (RF/RNF, dominio, contrato) |
 | `Coelsa/docs/openapi.yaml` | Contrato formal de la API (fuente de verdad) |
 | `Coelsa/docs/DEPLOY.md` | Runbook de despliegue (Render + Neon + Upstash) |
+| `Coelsa/tools/carga-masiva/README.md` | Herramienta de carga masiva de prueba (CLI + MCP) |
 | `Front_Coelsa/docs/SPEC.md` | Especificación del front (Consola de Instrumentos) |
 
 ## El pipeline documental
@@ -51,6 +52,7 @@ PRD ─────────▶ RFC ─────────▶ ADR ──
 | [ADR-008](adr/ADR-008-indices-parciales-covering.md) | Índices parciales + covering para listados | Accepted |
 | [ADR-009](adr/ADR-009-render-neon-upstash.md) | Stack gratuito Render + Neon + Upstash | Accepted |
 | [ADR-010](adr/ADR-010-strategy-y-lenguaje-ubiquo.md) | Patrón Strategy en creaciones + lenguaje ubicuo en español | Accepted |
+| [ADR-011](adr/ADR-011-mcp-carga-masiva-local.md) | Carga masiva expuesta como MCP local (stdio) | Accepted |
 
 ## Plantillas
 
