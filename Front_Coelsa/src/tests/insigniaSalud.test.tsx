@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import InsigniaSalud from '../presentation/layout/InsigniaSalud';
 import { ErrorCoelsa } from '../infrastructure/clienteHttp';
@@ -51,6 +52,23 @@ describe('InsigniaSalud (RF-F08)', () => {
 
     renderInsignia(puerto);
 
-    expect(await screen.findByText(/api no disponible/i)).toBeInTheDocument();
+    // Con reintentos con backoff el error tarda unos segundos en surfaces.
+    expect(
+      await screen.findByText(/api no disponible/i, undefined, { timeout: 15000 }),
+    ).toBeInTheDocument();
+  });
+
+  it('el botón de refresh vuelve a consultar el estado manualmente', async () => {
+    const usuario = userEvent.setup();
+    const consultar = vi
+      .fn()
+      .mockResolvedValue({ status: 'Healthy', checks: { postgres: 'Healthy', redis: 'Healthy' } });
+    const puerto: IPuertoSalud = { consultar };
+    renderInsignia(puerto);
+
+    await screen.findByText(/api operativa/i);
+    await usuario.click(screen.getByRole('button', { name: /volver a consultar/i }));
+
+    await waitFor(() => expect(consultar).toHaveBeenCalledTimes(2));
   });
 });

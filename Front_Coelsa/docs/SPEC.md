@@ -108,6 +108,8 @@ hoy+1`, `fechaDiferimiento ≥ fechaEmision` si viene.
 - Badge en el header que consulta `GET /health` (espejo RF-07) con
   refresco periódico.
 - Estados: saludable (verde), degradado/erróneo (ámbar/rojo) con tooltip.
+- Botón de refresh manual junto al badge y reintentos con backoff ante
+  fallas transitorias (los cold starts del plan gratis no deben dejarlo en rojo).
 
 ## 4. Requisitos no funcionales
 
