@@ -7,6 +7,7 @@ import InsigniaSalud from './InsigniaSalud';
 
 const ENLACES = [
   { destino: '/', etiqueta: 'Consultar' },
+  { destino: '/cuentas', etiqueta: 'Cuentas' },
   { destino: '/nuevo/cheque', etiqueta: 'Nuevo cheque' },
   { destino: '/nuevo/echeq', etiqueta: 'Nuevo echeq' },
   { destino: '/contratos', etiqueta: 'Contratos' },

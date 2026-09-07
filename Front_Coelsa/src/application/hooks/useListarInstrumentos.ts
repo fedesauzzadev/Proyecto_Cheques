@@ -31,7 +31,7 @@ export function useListarInstrumentos(
   puerto: IPuertoInstrumentos = apiInstrumentos,
 ) {
   return useQuery<PagedResponse<ChequeResponse> | PagedResponse<EcheqResponse>, ErrorCoelsa>({
-    queryKey: claveListado(tipo, filtros.cuit, filtros.page, filtros.pageSize),
+    queryKey: claveListado(tipo, filtros.cuit, filtros.page, filtros.pageSize, filtros.filtrosEcheq),
     queryFn: ({ signal }) =>
       tipo === 'ChequeFisico'
         ? puerto.listarCheques(filtros, signal)

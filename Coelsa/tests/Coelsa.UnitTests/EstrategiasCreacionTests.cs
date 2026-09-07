@@ -104,19 +104,35 @@ public class EcheqCreationStrategyTests
     private readonly AlmacenIdempotenciaFake _idempotencia = new();
     private readonly GestorCacheFake _cache = new();
     private readonly RepositorioEcheqsFake _repositorio = new();
+    private readonly RepositorioCuentasFake _cuentas = new();
+    private readonly RepositorioChequerasFake _chequeras = new();
     private readonly UnitOfWorkFake _unitOfWork = new();
 
-    private EcheqCreationStrategy CrearStrategy()
-        => new(_repositorio, _unitOfWork, _idempotencia, _cache, new GeneradorIdEcheqFijo());
+    private readonly string _cbu = FabricaEcheqs.Cbu;
+    private readonly string _cuitLibrador;
+    private readonly string _cuitBeneficiario;
 
-    private static string Cmc7Valido(int i) =>
-        $"011{i:D4}1425{(100000 + i):D8}000098765{i:D2}";
-
-    private static CrearEcheqRequest RequestValido(string? cmc7 = null) => new()
+    public EcheqCreationStrategyTests()
     {
-        Cmc7 = cmc7 ?? Cmc7Valido(1),
-        CuitLibrador = ValidadorCuit.Completar("2012345678"),
-        CuitBeneficiario = ValidadorCuit.Completar("2787654321"),
+        _cuitLibrador = ValidadorCuit.Completar("2012345678");
+        _cuitBeneficiario = ValidadorCuit.Completar("2787654321");
+        var cuenta = Domain.Entidades.Cuenta.Crear(_cbu, _cuitLibrador, "Librador Demo S.A.", Domain.Moneda.Dolares);
+        _cuentas.Agregar(cuenta);
+        _chequeras.Agregar(Domain.Entidades.Chequera.Solicitar(cuenta.Id, 1));
+    }
+
+    private EcheqCreationStrategy CrearStrategy()
+        => new(_repositorio, _cuentas, _chequeras, _unitOfWork, _idempotencia, _cache, new GeneradorIdEcheqFijo());
+
+    private CrearEcheqRequest RequestValido() => new()
+    {
+        CbuEmisor = _cbu,
+        Caracter = "AlaOrden",
+        TipoDocBeneficiario = "CUIT",
+        NombreLibrador = "Librador Demo S.A.",
+        NombreBeneficiario = "Beneficiario Demo S.A.",
+        CuitLibrador = _cuitLibrador,
+        CuitBeneficiario = _cuitBeneficiario,
         Monto = 250_000m,
         Moneda = "D",
         FechaEmision = new DateOnly(2026, 9, 5),
@@ -124,24 +140,110 @@ public class EcheqCreationStrategyTests
     };
 
     [Fact]
-    public async Task Crear_GeneraIdEcheqDe11Letras()
+    public async Task Crear_GeneraIdEcheqDe11LetrasYCmc7DerivadoDelCbu()
     {
         var resultado = await CrearStrategy().CrearAsync(
             RequestValido(), "77777777-7777-7777-7777-777777777777", default);
 
         Assert.False(resultado.EsReplay);
         Assert.Matches("^[A-Z]{11}$", resultado.Respuesta.Identificador);
+        Assert.Equal(_cbu, resultado.Respuesta.CbuEmisor);
+        Assert.Equal(1, resultado.Respuesta.NumeroChequera);
+        Assert.Equal(1, resultado.Respuesta.NumeroCheque);
+        Assert.Equal("CUIT", resultado.Respuesta.TipoDocBeneficiario);
+        Assert.Equal("Librador Demo S.A.", resultado.Respuesta.NombreLibrador);
+        Assert.Equal("Beneficiario Demo S.A.", resultado.Respuesta.NombreBeneficiario);
+        Assert.Equal(
+            Domain.ValueObjects.Cmc7.Derivar(_cbu, 1).Valor,
+            resultado.Respuesta.Cmc7);
         Assert.Single(_repositorio.Datos);
     }
 
     [Fact]
-    public async Task Crear_Cmc7Duplicado_LanzaConflicto409()
+    public async Task Crear_ConsumeNumerosSecuencialesSinRepetirCmc7()
     {
-        const int numero = 7;
+        var estrategia = CrearStrategy();
 
-        await CrearStrategy().CrearAsync(RequestValido(Cmc7Valido(numero)), "88888888-8888-8888-8888-888888888888", default);
+        var primero = await estrategia.CrearAsync(RequestValido(), "88888888-8888-8888-8888-888888888888", default);
+        var segundo = await estrategia.CrearAsync(RequestValido(), "99999999-9999-9999-9999-999999999999", default);
+
+        Assert.Equal(1, primero.Respuesta.NumeroCheque);
+        Assert.Equal(2, segundo.Respuesta.NumeroCheque);
+        Assert.NotEqual(primero.Respuesta.Cmc7, segundo.Respuesta.Cmc7);
+        Assert.NotEqual(primero.Respuesta.Identificador, segundo.Respuesta.Identificador);
+    }
+
+    [Fact]
+    public async Task Crear_LibradorDistintoDelTitular_LanzaValidacion400()
+    {
+        var request = RequestValido();
+        request.CuitLibrador = ValidadorCuit.Completar("3051122233");
+
+        await Assert.ThrowsAsync<ValidacionException>(
+            () => CrearStrategy().CrearAsync(request, "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", default));
+    }
+
+    [Fact]
+    public async Task Crear_MonedaDistintaDeLaCuenta_LanzaValidacion400()
+    {
+        var request = RequestValido();
+        request.Moneda = "P"; // la cuenta demo es en dólares
+
+        await Assert.ThrowsAsync<ValidacionException>(
+            () => CrearStrategy().CrearAsync(request, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb", default));
+    }
+
+    [Fact]
+    public async Task Crear_CuentaInexistente_LanzaValidacion400()
+    {
+        var request = RequestValido();
+        request.CbuEmisor = ValidadorCbu.Crear("011", "9999", "0000000000001");
+
+        await Assert.ThrowsAsync<ValidacionException>(
+            () => CrearStrategy().CrearAsync(request, "cccccccc-cccc-cccc-cccc-cccccccccccc", default));
+    }
+
+    [Fact]
+    public async Task Crear_GuardaCaracterYModoCruzado()
+    {
+        var request = RequestValido();
+        request.Caracter = "NoAlaOrden";
+
+        var resultado = await CrearStrategy().CrearAsync(
+            request, "dddddddd-dddd-dddd-dddd-dddddddddddd", default);
+
+        Assert.Equal("NoAlaOrden", resultado.Respuesta.Caracter);
+        Assert.Equal("Cruzado", resultado.Respuesta.Modo);
+    }
+
+    [Fact]
+    public async Task Crear_GuardaGestionOpcional()
+    {
+        var request = RequestValido();
+        request.Concepto = "Pago a proveedores";
+        request.Referencia = "FAC-123";
+        request.EmailNotificacion = "cobros@demo.local";
+
+        var resultado = await CrearStrategy().CrearAsync(
+            request, "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee", default);
+
+        Assert.Equal("Pago a proveedores", resultado.Respuesta.Concepto);
+        Assert.Equal("FAC-123", resultado.Respuesta.Referencia);
+        Assert.Equal("cobros@demo.local", resultado.Respuesta.EmailNotificacion);
+        Assert.Null(resultado.Respuesta.Motivo);
+    }
+
+    [Fact]
+    public async Task Crear_SinChequeraConLugar_LanzaConflicto409()
+    {
+        // Se agota la única chequera (50 números) con keys distintas.
+        var estrategia = CrearStrategy();
+        for (var i = 0; i < Domain.Entidades.Chequera.CantidadNumeros; i++)
+        {
+            await estrategia.CrearAsync(RequestValido(), Guid.NewGuid().ToString(), default);
+        }
 
         await Assert.ThrowsAsync<ConflictoDominioException>(
-            () => CrearStrategy().CrearAsync(RequestValido(Cmc7Valido(numero)), "99999999-9999-9999-9999-999999999999", default));
+            () => estrategia.CrearAsync(RequestValido(), Guid.NewGuid().ToString(), default));
     }
 }

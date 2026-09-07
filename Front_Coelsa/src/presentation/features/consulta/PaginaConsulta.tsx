@@ -9,8 +9,19 @@ import { Button } from '@/presentation/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/presentation/ui/card';
 import { Input } from '@/presentation/ui/input';
 import { Label } from '@/presentation/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/presentation/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/presentation/ui/tabs';
 import { esCuitValido } from '@/domain/validadorCuit';
+import { validarFiltrosEcheq } from '@/domain/filtrosEcheq';
+import type { FiltrosEcheq } from '@/domain/filtrosEcheq';
+import { ESTADOS_INSTRUMENTO } from '@/domain/tipos';
+import type { EstadoInstrumento } from '@/domain/tipos';
 import type { TipoInstrumentoForm } from '@/domain/estrategias/estrategiaCreacion';
 import type { IPuertoInstrumentos } from '@/application/puertos';
 import { useListarInstrumentos } from '@/application/hooks/useListarInstrumentos';
@@ -42,7 +53,40 @@ export default function PaginaConsulta({ puerto }: Props = {}) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const consulta = useListarInstrumentos(tipo, { cuit: cuitConsultado, page, pageSize }, puerto);
+  // Filtros de echeqs (Fase B6): borrador editable + aplicados a la consulta.
+  const [cbu, setCbu] = useState('');
+  const [estado, setEstado] = useState('');
+  const [desdeEmision, setDesdeEmision] = useState('');
+  const [hastaEmision, setHastaEmision] = useState('');
+  const [desdeVencimiento, setDesdeVencimiento] = useState('');
+  const [hastaVencimiento, setHastaVencimiento] = useState('');
+  const [numeroCheque, setNumeroCheque] = useState('');
+  const [errorFiltros, setErrorFiltros] = useState<string | null>(null);
+  const [filtrosAplicados, setFiltrosAplicados] = useState<FiltrosEcheq>({});
+
+  const consulta = useListarInstrumentos(
+    tipo,
+    {
+      cuit: cuitConsultado,
+      page,
+      pageSize,
+      filtrosEcheq: tipo === 'Echeq' ? filtrosAplicados : undefined,
+    },
+    puerto,
+  );
+
+  function filtrosDeBorrador(): FiltrosEcheq {
+    const numero = numeroCheque.trim() === '' ? null : Number(numeroCheque);
+    return {
+      cbu: cbu.trim() === '' ? null : cbu.trim(),
+      estado: (estado === '' ? null : estado) as EstadoInstrumento | null,
+      desdeEmision: desdeEmision === '' ? null : desdeEmision,
+      hastaEmision: hastaEmision === '' ? null : hastaEmision,
+      desdeVencimiento: desdeVencimiento === '' ? null : desdeVencimiento,
+      hastaVencimiento: hastaVencimiento === '' ? null : hastaVencimiento,
+      numeroCheque: numero,
+    };
+  }
 
   function buscarCon(cuit: string) {
     const normalizado = cuit.trim();
@@ -50,8 +94,31 @@ export default function PaginaConsulta({ puerto }: Props = {}) {
       setErrorCuit('Ingresá un CUIT/CUIL válido de 11 dígitos (con verificador módulo 11).');
       return;
     }
+    if (tipo === 'Echeq') {
+      const fallas = validarFiltrosEcheq(filtrosDeBorrador());
+      const mensajes = Object.values(fallas);
+      if (mensajes.length > 0) {
+        setErrorFiltros(mensajes.join(' '));
+        return;
+      }
+      setErrorFiltros(null);
+      setFiltrosAplicados(filtrosDeBorrador());
+    }
     setErrorCuit(null);
     setCuitConsultado(normalizado);
+    setPage(1);
+  }
+
+  function limpiarFiltros() {
+    setCbu('');
+    setEstado('');
+    setDesdeEmision('');
+    setHastaEmision('');
+    setDesdeVencimiento('');
+    setHastaVencimiento('');
+    setNumeroCheque('');
+    setErrorFiltros(null);
+    setFiltrosAplicados({});
     setPage(1);
   }
 
@@ -141,6 +208,100 @@ export default function PaginaConsulta({ puerto }: Props = {}) {
               </Button>
             ))}
           </div>
+
+          {tipo === 'Echeq' && (
+            <fieldset className="flex flex-col gap-3 rounded-md border p-3">
+              <legend className="px-1 text-xs font-medium text-muted-foreground">
+                Filtros de echeqs (opcionales)
+              </legend>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="filtro-cbu">CBU emisor</Label>
+                  <Input
+                    id="filtro-cbu"
+                    inputMode="numeric"
+                    placeholder="0110001300000000000017"
+                    value={cbu}
+                    onChange={(evento) => setCbu(evento.target.value)}
+                    className="font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="filtro-estado">Estado</Label>
+                  <Select value={estado} onValueChange={setEstado}>
+                    <SelectTrigger id="filtro-estado">
+                      <SelectValue placeholder="Todos" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ESTADOS_INSTRUMENTO.map((opcion) => (
+                        <SelectItem key={opcion} value={opcion}>
+                          {opcion}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="filtro-desde-emision">Emisión desde</Label>
+                  <Input
+                    id="filtro-desde-emision"
+                    type="date"
+                    value={desdeEmision}
+                    onChange={(evento) => setDesdeEmision(evento.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="filtro-hasta-emision">Emisión hasta</Label>
+                  <Input
+                    id="filtro-hasta-emision"
+                    type="date"
+                    value={hastaEmision}
+                    onChange={(evento) => setHastaEmision(evento.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="filtro-desde-vencimiento">Vencimiento desde</Label>
+                  <Input
+                    id="filtro-desde-vencimiento"
+                    type="date"
+                    value={desdeVencimiento}
+                    onChange={(evento) => setDesdeVencimiento(evento.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="filtro-hasta-vencimiento">Vencimiento hasta</Label>
+                  <Input
+                    id="filtro-hasta-vencimiento"
+                    type="date"
+                    value={hastaVencimiento}
+                    onChange={(evento) => setHastaVencimiento(evento.target.value)}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="filtro-numero">Número de cheque</Label>
+                  <Input
+                    id="filtro-numero"
+                    type="number"
+                    min="1"
+                    placeholder="7"
+                    value={numeroCheque}
+                    onChange={(evento) => setNumeroCheque(evento.target.value)}
+                    className="font-mono"
+                  />
+                </div>
+              </div>
+              {errorFiltros && (
+                <p role="alert" className="text-sm text-destructive">
+                  {errorFiltros}
+                </p>
+              )}
+              <div>
+                <Button type="button" variant="outline" size="sm" onClick={limpiarFiltros}>
+                  Limpiar filtros
+                </Button>
+              </div>
+            </fieldset>
+          )}
         </CardContent>
       </Card>
 

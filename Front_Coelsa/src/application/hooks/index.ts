@@ -17,3 +17,6 @@ export {
   useAnularDevolucion,
 } from './useDevoluciones';
 export type { VariablesSolicitarDevolucion, VariablesResolverDevolucion } from './useDevoluciones';
+export { useCesiones, useSolicitarCesion, useResolverCesion, useAnularCesion } from './useCesiones';
+export type { VariablesSolicitarCesion, VariablesResolverCesion } from './useCesiones';
+export { useCertificado } from './useCertificado';

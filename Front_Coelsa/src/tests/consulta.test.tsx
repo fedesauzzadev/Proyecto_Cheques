@@ -1,7 +1,7 @@
 // Tests de la página de consulta (RF-F01): validación de CUIT client-side,
 // tabla paginada, estados vacío/error y cambio de tipo por pestañas.
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -134,10 +134,70 @@ describe('PaginaConsulta (RF-F01)', () => {
     await buscarCuit(usuario, CUIT_VALIDO);
 
     expect(puerto.listarEcheqs).toHaveBeenCalledWith(
-      { cuit: CUIT_VALIDO, page: 1, pageSize: 10 },
+      {
+        cuit: CUIT_VALIDO,
+        page: 1,
+        pageSize: 10,
+        filtrosEcheq: {
+          cbu: null,
+          estado: null,
+          desdeEmision: null,
+          hastaEmision: null,
+          desdeVencimiento: null,
+          hastaVencimiento: null,
+          numeroCheque: null,
+        },
+      },
       expect.anything(),
     );
     expect(puerto.listarCheques).not.toHaveBeenCalled();
+  });
+
+  it('en Echeqs los filtros válidos viajan en la consulta', async () => {
+    const usuario = userEvent.setup();
+    const puerto = crearPuertoFalso();
+    puerto.listarEcheqs.mockResolvedValue({
+      items: [],
+      page: 1,
+      pageSize: 10,
+      totalCount: 0,
+      totalPages: 0,
+    });
+    renderPagina(puerto);
+
+    await usuario.click(screen.getByRole('tab', { name: /echeqs/i }));
+    await usuario.type(screen.getByLabelText(/cbu emisor/i), '0110001300000000000017');
+    fireEvent.change(screen.getByLabelText(/emisión desde/i), { target: { value: '2026-09-01' } });
+    fireEvent.change(screen.getByLabelText(/emisión hasta/i), { target: { value: '2026-09-30' } });
+    await buscarCuit(usuario, CUIT_VALIDO);
+
+    expect(puerto.listarEcheqs).toHaveBeenCalledWith(
+      {
+        cuit: CUIT_VALIDO,
+        page: 1,
+        pageSize: 10,
+        filtrosEcheq: expect.objectContaining({
+          cbu: '0110001300000000000017',
+          desdeEmision: '2026-09-01',
+          hastaEmision: '2026-09-30',
+        }),
+      },
+      expect.anything(),
+    );
+  });
+
+  it('con rango mayor a 360 días informa error y no llama a la API', async () => {
+    const usuario = userEvent.setup();
+    const puerto = crearPuertoFalso();
+    renderPagina(puerto);
+
+    await usuario.click(screen.getByRole('tab', { name: /echeqs/i }));
+    fireEvent.change(screen.getByLabelText(/emisión desde/i), { target: { value: '2025-01-01' } });
+    fireEvent.change(screen.getByLabelText(/emisión hasta/i), { target: { value: '2026-09-05' } });
+    await buscarCuit(usuario, CUIT_VALIDO);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/360 días/);
+    expect(puerto.listarEcheqs).not.toHaveBeenCalled();
   });
 
   it('sin resultados muestra el estado vacío con acción de creación', async () => {

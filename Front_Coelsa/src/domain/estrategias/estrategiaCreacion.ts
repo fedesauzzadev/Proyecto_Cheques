@@ -8,7 +8,7 @@ export type TipoInstrumentoForm = 'ChequeFisico' | 'Echeq';
 export interface CampoFormulario<TRequest> {
   nombre: keyof TRequest & string;
   etiqueta: string;
-  tipo: 'texto' | 'numero' | 'fecha' | 'moneda';
+  tipo: 'texto' | 'numero' | 'fecha' | 'moneda' | 'caracter' | 'tipodoc';
   obligatorio: boolean;
   placeholder?: string;
   ayuda?: string;

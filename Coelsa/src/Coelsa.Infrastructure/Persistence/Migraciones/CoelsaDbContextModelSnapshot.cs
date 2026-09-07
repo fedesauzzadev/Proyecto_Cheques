@@ -22,6 +22,51 @@ namespace Coelsa.Infrastructure.Persistence.Migraciones
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Coelsa.Domain.Entidades.Cesion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CuitCedente")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<string>("CuitCesionario")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<string>("DomicilioCesionario")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("EcheqId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Numero")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EcheqId", "Numero")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cesiones_echeq_numero_unicos");
+
+                    b.ToTable("cesiones", (string)null);
+                });
+
             modelBuilder.Entity("Coelsa.Domain.Entidades.ChequeFisico", b =>
                 {
                     b.Property<Guid>("Id")
@@ -95,6 +140,91 @@ namespace Coelsa.Infrastructure.Persistence.Migraciones
                     b.ToTable("cheques_fisicos", (string)null);
                 });
 
+            modelBuilder.Entity("Coelsa.Domain.Entidades.Chequera", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("CuentaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FechaHabilitacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("FechaSolicitud")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Numero")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProximoNumero")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CuentaId", "Numero")
+                        .IsUnique();
+
+                    b.HasIndex("CuentaId", "Estado", "ProximoNumero")
+                        .HasDatabaseName("ix_chequeras_cuenta_con_lugar");
+
+                    b.ToTable("chequeras", (string)null);
+                });
+
+            modelBuilder.Entity("Coelsa.Domain.Entidades.Cuenta", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Cbu")
+                        .IsRequired()
+                        .HasMaxLength(22)
+                        .HasColumnType("character varying(22)");
+
+                    b.Property<string>("CuitTitular")
+                        .IsRequired()
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<DateTime?>("FechaBaja")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Moneda")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NombreTitular")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Cbu")
+                        .IsUnique();
+
+                    b.HasIndex("CuitTitular", "Activa")
+                        .HasDatabaseName("ix_cuentas_cuit_titular");
+
+                    b.ToTable("cuentas", (string)null);
+                });
+
             modelBuilder.Entity("Coelsa.Domain.Entidades.Devolucion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -146,10 +276,22 @@ namespace Coelsa.Infrastructure.Persistence.Migraciones
                     b.Property<int>("CantidadEndosos")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Caracter")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CbuEmisor")
+                        .IsRequired()
+                        .HasMaxLength(22)
+                        .HasColumnType("character varying(22)");
+
                     b.Property<string>("Cmc7")
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
+
+                    b.Property<string>("Concepto")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
 
                     b.Property<string>("CuitBeneficiario")
                         .IsRequired()
@@ -160,6 +302,10 @@ namespace Coelsa.Infrastructure.Persistence.Migraciones
                         .IsRequired()
                         .HasMaxLength(11)
                         .HasColumnType("character varying(11)");
+
+                    b.Property<string>("EmailNotificacion")
+                        .HasMaxLength(160)
+                        .HasColumnType("character varying(160)");
 
                     b.Property<int>("Estado")
                         .HasColumnType("integer");
@@ -194,7 +340,38 @@ namespace Coelsa.Infrastructure.Persistence.Migraciones
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("Motivo")
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)");
+
                     b.Property<int?>("MotivoRechazo")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MotivoRepudio")
+                        .HasMaxLength(280)
+                        .HasColumnType("character varying(280)");
+
+                    b.Property<string>("NombreBeneficiario")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<string>("NombreLibrador")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("NumeroCheque")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NumeroChequera")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Referencia")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<int>("TipoDocBeneficiario")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -214,6 +391,10 @@ namespace Coelsa.Infrastructure.Persistence.Migraciones
                         .HasFilter("\"Activo\" = true");
 
                     NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("CuitLibrador", "FechaCreacion"), new[] { "IdEcheq", "CuitBeneficiario", "Monto", "Moneda", "FechaEmision", "FechaDiferimiento", "FechaVencimiento", "Estado", "MotivoRechazo" });
+
+                    b.HasIndex("CbuEmisor", "NumeroChequera", "NumeroCheque")
+                        .IsUnique()
+                        .HasDatabaseName("ix_echeqs_cbu_chequera_numero");
 
                     b.ToTable("echeqs", (string)null);
                 });

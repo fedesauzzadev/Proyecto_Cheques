@@ -3,6 +3,7 @@ using Coelsa.Application.Dtos;
 using Coelsa.Application.Puertos;
 using Coelsa.Domain;
 using Coelsa.Domain.Entidades;
+using Coelsa.Domain.Validaciones;
 
 namespace Coelsa.Application.CasosUso;
 
@@ -33,6 +34,12 @@ public abstract class CambiarEstadoHandler<TEntidad>(
 
         var nuevoEstado = Mapeadores.ParseEstado(request.Estado);
         var motivoRechazo = Mapeadores.ParseMotivoRechazo(request.MotivoRechazo);
+
+        if (nuevoEstado == EstadoInstrumento.Depositado)
+        {
+            ValidacionesInstrumento.ValidarVentanaPresentacion(
+                entidad.FechaVencimiento, DateOnly.FromDateTime(DateTime.UtcNow));
+        }
 
         AplicarCambio(entidad, nuevoEstado, motivoRechazo);
 

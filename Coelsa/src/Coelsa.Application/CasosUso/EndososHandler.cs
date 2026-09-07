@@ -28,6 +28,12 @@ public sealed class ProponerEndosoHandler(
                 $"Solo se puede endosar un echeq en estado Emitido (actual: {echeq.Estado}).");
         }
 
+        if (echeq.Caracter != Caracter.AlaOrden)
+        {
+            throw new TransicionInvalidaException(
+                "Solo se pueden endosar echeqs con carácter 'A la orden' (los 'No a la orden' se transmiten por cesión).");
+        }
+
         var existentes = await endosos.ListarPorEcheqAsync(echeq.Id, ct);
         if (existentes.Count(e => e.Estado != EstadoEndoso.Anulado) >= Endoso.MaximoEndosos)
         {

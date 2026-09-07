@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import PaginaCreacion from '../presentation/features/creacion/PaginaCreacion';
 import { ErrorCoelsa } from '../infrastructure/clienteHttp';
-import type { IPuertoInstrumentos } from '../application/puertos';
+import type { IPuertoCuentas, IPuertoInstrumentos } from '../application/puertos';
 
 const chequeCreado = {
   identificador: '060000114250000123400001234567',
@@ -49,7 +49,27 @@ function crearPuertoFalso() {
   } satisfies IPuertoInstrumentos;
 }
 
-function renderCreacion(tipo: 'ChequeFisico' | 'Echeq', puerto: IPuertoInstrumentos) {
+function crearPuertoCuentasFalso() {
+  return {
+    crear: vi.fn(),
+    listarPorCuit: vi.fn(),
+    obtener: vi.fn(),
+    solicitarChequera: vi.fn(),
+    listarChequeras: vi.fn(),
+    buscarTitular: vi.fn().mockResolvedValue({
+      tipoDoc: 'CUIT',
+      numero: '30511222334',
+      nombre: 'Beta S.A.',
+      bancarizado: true,
+    }),
+  } satisfies IPuertoCuentas;
+}
+
+function renderCreacion(
+  tipo: 'ChequeFisico' | 'Echeq',
+  puerto: IPuertoInstrumentos,
+  puertoCuentas: IPuertoCuentas = crearPuertoCuentasFalso(),
+) {
   const cliente = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   function Envoltorio({ children }: { children: ReactNode }) {
     return (
@@ -58,7 +78,9 @@ function renderCreacion(tipo: 'ChequeFisico' | 'Echeq', puerto: IPuertoInstrumen
       </QueryClientProvider>
     );
   }
-  return render(<PaginaCreacion tipo={tipo} puerto={puerto} />, { wrapper: Envoltorio });
+  return render(<PaginaCreacion tipo={tipo} puerto={puerto} puertoCuentas={puertoCuentas} />, {
+    wrapper: Envoltorio,
+  });
 }
 
 async function completarChequeValido(usuario: ReturnType<typeof userEvent.setup>) {
@@ -155,13 +177,15 @@ describe('PaginaCreacion — cheque físico (RF-F03)', () => {
 });
 
 describe('PaginaCreacion — echeq', () => {
-  it('envía el request del echeq con CMC7 completo', async () => {
+  it('envía el request del echeq con CBU de la cuenta de débito', async () => {
     const usuario = userEvent.setup();
     const puerto = crearPuertoFalso();
     puerto.crearEcheq.mockResolvedValue({ respuesta: {}, esReplay: false });
     renderCreacion('Echeq', puerto);
 
-    await usuario.type(screen.getByLabelText(/cmc7/i), '011000114250000123400001234567');
+    await usuario.type(screen.getByLabelText(/cbu cuenta de débito/i), '0110001300000000000017');
+    await usuario.type(screen.getByLabelText(/nombre del librador/i), 'Alfa S.R.L.');
+    await usuario.type(screen.getByLabelText(/nombre del beneficiario/i), 'Beta S.A.');
     await usuario.type(screen.getByLabelText(/cuit\/cuil librador/i), '20123456786');
     await usuario.type(screen.getByLabelText(/cuit\/cuil beneficiario/i), '30511222334');
     await usuario.type(screen.getByLabelText(/^monto/i), '250000');
@@ -175,12 +199,48 @@ describe('PaginaCreacion — echeq', () => {
 
     expect(puerto.crearEcheq).toHaveBeenCalledWith(
       expect.objectContaining({
-        cmc7: '011000114250000123400001234567',
+        cbuEmisor: '0110001300000000000017',
+        caracter: 'AlaOrden',
+        tipoDocBeneficiario: 'CUIT',
+        nombreLibrador: 'Alfa S.R.L.',
+        nombreBeneficiario: 'Beta S.A.',
         moneda: 'P',
         fechaVencimiento: '2026-10-05',
       }),
       expect.stringMatching(UUID),
     );
-    expect(screen.getByText(/generado por la API/i)).toBeInTheDocument();
+    expect(screen.getByText(/generados por la API/i)).toBeInTheDocument();
+  });
+
+  it('la lupa autocompleta el nombre del beneficiario bancarizado', async () => {
+    const usuario = userEvent.setup();
+    const puerto = crearPuertoFalso();
+    const puertoCuentas = crearPuertoCuentasFalso();
+    puerto.crearEcheq.mockResolvedValue({ respuesta: {}, esReplay: false });
+    renderCreacion('Echeq', puerto, puertoCuentas);
+
+    await usuario.type(screen.getByLabelText(/cuit\/cuil beneficiario/i), '30511222334');
+
+    expect(await screen.findByText('Beta S.A.')).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: /usar nombre/i }));
+
+    expect(screen.getByLabelText(/nombre del beneficiario/i)).toHaveValue('Beta S.A.');
+    expect(puertoCuentas.buscarTitular).toHaveBeenCalledWith(
+      'CUIT',
+      '30511222334',
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('con CBU inválido muestra error y no llama a la API', async () => {
+    const usuario = userEvent.setup();
+    const puerto = crearPuertoFalso();
+    renderCreacion('Echeq', puerto);
+
+    await usuario.type(screen.getByLabelText(/cbu cuenta de débito/i), '123');
+    await usuario.click(screen.getByRole('button', { name: /^crear$/i }));
+
+    expect(await screen.findByText(/22 dígitos/)).toBeInTheDocument();
+    expect(puerto.crearEcheq).not.toHaveBeenCalled();
   });
 });

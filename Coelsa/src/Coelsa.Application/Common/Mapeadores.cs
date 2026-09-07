@@ -43,6 +43,18 @@ public static class Mapeadores
         {
             Identificador = echeq.IdEcheq,
             Tipo = "Echeq",
+            CbuEmisor = echeq.CbuEmisor,
+            NumeroChequera = echeq.NumeroChequera,
+            NumeroCheque = echeq.NumeroCheque,
+            Caracter = CaracterACodigo(echeq.Caracter),
+            Modo = "Cruzado",
+            TipoDocBeneficiario = TipoDocACodigo(echeq.TipoDocBeneficiario),
+            NombreLibrador = echeq.NombreLibrador,
+            NombreBeneficiario = echeq.NombreBeneficiario,
+            Concepto = echeq.Concepto,
+            Motivo = echeq.Motivo,
+            Referencia = echeq.Referencia,
+            EmailNotificacion = echeq.EmailNotificacion,
             Cmc7 = echeq.Cmc7,
             DesgloseCmc7 = new DesgloseCmc7Dto
             {
@@ -61,6 +73,7 @@ public static class Mapeadores
             FechaVencimiento = echeq.FechaVencimiento,
             Estado = echeq.Estado.ToString(),
             MotivoRechazo = (int?)echeq.MotivoRechazo,
+            MotivoRepudio = echeq.MotivoRepudio,
             CantidadEndosos = echeq.CantidadEndosos,
             FechaCreacion = echeq.FechaCreacion
         };
@@ -90,9 +103,61 @@ public static class Mapeadores
         };
     }
 
+    public static CesionResponse AResponse(this Cesion cesion)
+    {
+        return new CesionResponse
+        {
+            Numero = cesion.Numero,
+            CuitCedente = cesion.CuitCedente,
+            CuitCesionario = cesion.CuitCesionario,
+            DomicilioCesionario = cesion.DomicilioCesionario,
+            Estado = cesion.Estado.ToString(),
+            FechaCreacion = cesion.FechaCreacion
+        };
+    }
+
+    public static CuentaResponse AResponse(this Cuenta cuenta)
+    {
+        return new CuentaResponse
+        {
+            Cbu = cuenta.Cbu,
+            Banco = cuenta.Banco,
+            Sucursal = cuenta.Sucursal,
+            NumeroCuenta = cuenta.NumeroCuenta,
+            CuitTitular = cuenta.CuitTitular,
+            NombreTitular = cuenta.NombreTitular,
+            Moneda = MonedaACodigo(cuenta.Moneda),
+            FechaCreacion = cuenta.FechaCreacion
+        };
+    }
+
+    public static ChequeraResponse AResponse(this Chequera chequera)
+    {
+        return new ChequeraResponse
+        {
+            Numero = chequera.Numero,
+            CantidadTotal = Chequera.CantidadNumeros,
+            ProximoNumero = chequera.ProximoNumero,
+            Disponibles = Math.Max(0, Chequera.CantidadNumeros - chequera.ProximoNumero + 1),
+            Estado = chequera.Estado.ToString(),
+            FechaSolicitud = chequera.FechaSolicitud,
+            FechaHabilitacion = chequera.FechaHabilitacion
+        };
+    }
+
     public static string MonedaACodigo(Moneda moneda) => moneda == Moneda.Pesos ? "P" : "D";
 
     public static Moneda CodigoAMoneda(string codigo) => codigo == "P" ? Moneda.Pesos : Moneda.Dolares;
+
+    public static string CaracterACodigo(Caracter caracter) => caracter == Caracter.AlaOrden ? "AlaOrden" : "NoAlaOrden";
+
+    public static Caracter CodigoACaracter(string codigo) => codigo == "NoAlaOrden" ? Caracter.NoAlaOrden : Caracter.AlaOrden;
+
+    public static string TipoDocACodigo(TipoDocumento tipo) => Domain.Validaciones.ValidadorDocumento.TipoACodigo(tipo);
+
+    public static TipoDocumento CodigoATipoDoc(string codigo)
+        => Domain.Validaciones.ValidadorDocumento.CodigoATipo(codigo)
+            ?? throw new ValidacionException("El tipo de documento debe ser 'CUIT', 'CUIL' o 'CDI'.");
 
     public static EstadoInstrumento ParseEstado(string estado)
     {

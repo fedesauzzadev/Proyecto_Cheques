@@ -1,9 +1,11 @@
 # Carga masiva (CLI + MCP)
 
 Herramienta operativa para poblar la API COELSA con instrumentos de prueba:
-cheques físicos y echeqs con CMC7 únicos y deterministas por índice, fechas
-válidas según reglas de negocio (tenor ≤ 365 días), y avance opcional de
-estados (≈80% queda en estado inicial). Requiere Node ≥ 18.
+cheques físicos con CMC7 únicos y deterministas por índice, echeqs contra
+cuentas demo (el cargador crea las 8 cuentas + chequeras con capacidad
+suficiente y pide más si alguna se agota), fechas válidas según reglas de
+negocio (tenor ≤ 360 días), y avance opcional de estados (≈80% queda en
+estado inicial). Requiere Node ≥ 18.
 
 ## MCP (uso desde un asistente)
 

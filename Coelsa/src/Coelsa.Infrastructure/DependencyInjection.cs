@@ -20,9 +20,12 @@ public static class DependencyInjection
 
         services.AddScoped<IInstrumentoRepository<Domain.Entidades.ChequeFisico>, ChequeFisicoRepository>();
         services.AddScoped<IEcheqRepository, EcheqRepository>();
+        services.AddScoped<ICuentaRepository, CuentaRepository>();
+        services.AddScoped<IChequeraRepository, ChequeraRepository>();
         services.AddScoped<IInstrumentoRepository<Domain.Entidades.Echeq>>(sp => sp.GetRequiredService<IEcheqRepository>());
         services.AddScoped<IEndosoRepository, EndosoRepository>();
         services.AddScoped<IDevolucionRepository, DevolucionRepository>();
+        services.AddScoped<ICesionRepository, CesionRepository>();
 
         services.AddScoped<IAlmacenIdempotencia, AlmacenIdempotencia>();
 

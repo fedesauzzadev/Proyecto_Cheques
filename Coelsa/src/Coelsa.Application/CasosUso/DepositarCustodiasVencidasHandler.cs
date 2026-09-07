@@ -4,9 +4,9 @@ using Coelsa.Domain.Entidades;
 namespace Coelsa.Application.CasosUso;
 
 /// <summary>
-/// Débito automático de custodias vencidas (SPEC Fase A, ejecutado por el worker):
-/// deposita los echeqs en custodia cuya fecha de vencimiento ya pasó.
-/// Devuelve la cantidad depositada para observabilidad.
+/// Débito automático de custodias vencidas (SPEC Fase A + B5, ejecutado por el worker):
+/// deposita las vencidas dentro de la ventana de presentación (30 días) y caduca
+/// las que la superaron. Devuelve la cantidad depositada para observabilidad.
 /// </summary>
 public sealed class DepositarCustodiasVencidasHandler(
     IEcheqRepository echeqs,
@@ -16,10 +16,19 @@ public sealed class DepositarCustodiasVencidasHandler(
     public async Task<int> Ejecutar(DateOnly hoy, CancellationToken ct)
     {
         var vencidas = await echeqs.ListarCustodiasVencidasAsync(hoy, ct);
+        var depositadas = 0;
 
         foreach (var echeq in vencidas)
         {
-            echeq.DepositarPorVencimiento(hoy);
+            if (hoy.DayNumber - echeq.FechaVencimiento.DayNumber > Domain.Validaciones.ValidacionesInstrumento.PlazoPresentacionDias)
+            {
+                echeq.CambiarEstado(Domain.EstadoInstrumento.Caducado, null);
+            }
+            else
+            {
+                echeq.DepositarPorVencimiento(hoy);
+                depositadas++;
+            }
         }
 
         if (vencidas.Count == 0)
@@ -35,6 +44,6 @@ public sealed class DepositarCustodiasVencidasHandler(
             await cache.InvalidarAsync(Domain.TipoInstrumento.Echeq, echeq.CuitBeneficiario, ct);
         }
 
-        return vencidas.Count;
+        return depositadas;
     }
 }

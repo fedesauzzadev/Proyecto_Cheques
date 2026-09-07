@@ -109,7 +109,7 @@ server.tool(
 
 server.tool(
   'cargar_echeqs',
-  'Crea N echeqs de prueba contra la API COELSA (CMC7 únicos, reanudable, sin duplicados).',
+  'Crea N echeqs de prueba contra la API COELSA (crea cuentas demo + chequeras con capacidad; CMC7 e IDECHEQ autogenerados, reanudable).',
   esquemaCarga,
   async (p) => {
     try {

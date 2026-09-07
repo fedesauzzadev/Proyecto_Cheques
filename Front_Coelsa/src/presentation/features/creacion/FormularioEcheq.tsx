@@ -2,16 +2,24 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { Search } from 'lucide-react';
 import { Button } from '@/presentation/ui/button';
 import { estrategiaEcheq } from '@/domain/estrategias';
 import type { ErroresCampo } from '@/domain/validacionesInstrumento';
-import type { IPuertoInstrumentos } from '@/application/puertos';
+import type { IPuertoCuentas, IPuertoInstrumentos } from '@/application/puertos';
 import { useCrearInstrumento } from '@/application/hooks/useCrearInstrumento';
+import { useTitular } from '@/application/hooks/useCuentas';
 import CamposEstrategia from './CamposEstrategia';
 import { valoresIniciales } from './valoresIniciales';
 import EstadoEnvio from './EstadoEnvio';
 
-export default function FormularioEcheq({ puerto }: { puerto?: IPuertoInstrumentos }) {
+export default function FormularioEcheq({
+  puerto,
+  puertoCuentas,
+}: {
+  puerto?: IPuertoInstrumentos;
+  puertoCuentas?: IPuertoCuentas;
+}) {
   const navigate = useNavigate();
   const crear = useCrearInstrumento('Echeq', puerto);
 
@@ -23,6 +31,14 @@ export default function FormularioEcheq({ puerto }: { puerto?: IPuertoInstrument
   const [conflicto, setConflicto] = useState<string | null>(null);
   const [replayHref, setReplayHref] = useState<string | null>(null);
   const [intentoId, setIntentoId] = useState(() => crypto.randomUUID());
+
+  // Lupa del beneficiario (Fase B3): valida el documento y, si está
+  // bancarizado, permite autocompletar el nombre.
+  const titular = useTitular(
+    valores.tipoDocBeneficiario ?? '',
+    valores.cuitBeneficiario ?? '',
+    puertoCuentas,
+  );
 
   function actualizar(nombre: string, valor: string) {
     setValores((anteriores) => ({ ...anteriores, [nombre]: valor }));
@@ -76,6 +92,37 @@ export default function FormularioEcheq({ puerto }: { puerto?: IPuertoInstrument
         errores={errores}
         onCambiar={actualizar}
       />
+      <div aria-live="polite">
+        {titular.fetchStatus === 'fetching' && (
+          <p className="text-xs text-muted-foreground">Validando documento del beneficiario…</p>
+        )}
+        {titular.isSuccess && titular.data.bancarizado && titular.data.nombre && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span>
+              ✓ <span className="font-medium">{titular.data.nombre}</span> (bancarizado)
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => actualizar('nombreBeneficiario', titular.data.nombre ?? '')}
+            >
+              <Search className="size-4" aria-hidden />
+              Usar nombre
+            </Button>
+          </div>
+        )}
+        {titular.isSuccess && !titular.data.bancarizado && (
+          <p className="text-xs text-muted-foreground">
+            Documento válido pero no bancarizado: informá el nombre manualmente.
+          </p>
+        )}
+        {titular.isError && (
+          <p role="alert" className="text-sm text-destructive">
+            {titular.error.message}
+          </p>
+        )}
+      </div>
       <EstadoEnvio
         intentoId={intentoId}
         errorServidor={errorServidor}

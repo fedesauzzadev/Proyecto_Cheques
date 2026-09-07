@@ -3,16 +3,17 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/presentation/ui/card';
 import type { TipoInstrumentoForm } from '@/domain/estrategias/estrategiaCreacion';
 import { estrategiaChequeFisico, estrategiaEcheq } from '@/domain/estrategias';
-import type { IPuertoInstrumentos } from '@/application/puertos';
+import type { IPuertoCuentas, IPuertoInstrumentos } from '@/application/puertos';
 import FormularioChequeFisico from './FormularioChequeFisico';
 import FormularioEcheq from './FormularioEcheq';
 
 interface Props {
   tipo: TipoInstrumentoForm;
   puerto?: IPuertoInstrumentos;
+  puertoCuentas?: IPuertoCuentas;
 }
 
-export default function PaginaCreacion({ tipo, puerto }: Props) {
+export default function PaginaCreacion({ tipo, puerto, puertoCuentas }: Props) {
   const esCheque = tipo === 'ChequeFisico';
   const estrategia = esCheque ? estrategiaChequeFisico : estrategiaEcheq;
 
@@ -29,7 +30,7 @@ export default function PaginaCreacion({ tipo, puerto }: Props) {
         {esCheque ? (
           <FormularioChequeFisico puerto={puerto} />
         ) : (
-          <FormularioEcheq puerto={puerto} />
+          <FormularioEcheq puerto={puerto} puertoCuentas={puertoCuentas} />
         )}
       </CardContent>
     </Card>

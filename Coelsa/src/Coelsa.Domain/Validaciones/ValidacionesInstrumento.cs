@@ -5,6 +5,16 @@ namespace Coelsa.Domain.Validaciones;
 /// </summary>
 public static class ValidacionesInstrumento
 {
+    /// <summary>Plazo máximo entre emisión y vencimiento: 360 días (BCRA).</summary>
+    public const int TenorMaximoDias = 360;
+
+    /// <summary>Plazo de presentación al cobro desde el vencimiento: 30 días.</summary>
+    public const int PlazoPresentacionDias = 30;
+
+    public const int LongitudConcepto = 60;
+    public const int LongitudMotivo = 280;
+    public const int LongitudReferencia = 60;
+    public const int LongitudEmail = 160;
     public static void ValidarComunes(
         string? cuitLibrador,
         string? cuitBeneficiario,
@@ -46,6 +56,12 @@ public static class ValidacionesInstrumento
             throw new ValidacionException($"La fecha de vencimiento {fechaVencimiento:yyyy-MM-dd} debe ser posterior a la fecha de emisión {fechaEmision:yyyy-MM-dd}.");
         }
 
+        if (fechaVencimiento.DayNumber - fechaEmision.DayNumber > TenorMaximoDias)
+        {
+            throw new ValidacionException(
+                $"El plazo entre la emisión y el vencimiento no puede superar los {TenorMaximoDias} días.");
+        }
+
         if (fechaDiferimiento.HasValue && fechaVencimiento <= fechaDiferimiento.Value)
         {
             throw new ValidacionException($"La fecha de vencimiento {fechaVencimiento:yyyy-MM-dd} debe ser posterior a la fecha de diferimiento {fechaDiferimiento.Value:yyyy-MM-dd}.");
@@ -70,5 +86,40 @@ public static class ValidacionesInstrumento
         {
             throw new ValidacionException("Solo el estado Rechazado admite un motivo de rechazo.");
         }
+    }
+
+    /// <summary>
+    /// Ventana de presentación al cobro (Fase B5): el depósito solo procede
+    /// dentro de los 30 días posteriores al vencimiento; después el echeq caduca.
+    /// </summary>
+    public static void ValidarVentanaPresentacion(DateOnly fechaVencimiento, DateOnly hoy)
+    {
+        if (hoy.DayNumber - fechaVencimiento.DayNumber > PlazoPresentacionDias)
+        {
+            throw new TransicionInvalidaException(
+                $"El plazo de presentación al cobro ({PlazoPresentacionDias} días desde el vencimiento) ya pasó.");
+        }
+    }
+
+    /// <summary>Normaliza un campo opcional de gestión (concepto, motivo, referencia, email).</summary>
+    public static string? NormalizarGestion(string? valor, int maximo, string campo, bool esEmail = false)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+        {
+            return null;
+        }
+
+        var normalizado = valor.Trim();
+        if (normalizado.Length > maximo)
+        {
+            throw new ValidacionException($"El campo '{campo}' debe tener hasta {maximo} caracteres.");
+        }
+
+        if (esEmail && !System.Text.RegularExpressions.Regex.IsMatch(normalizado, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
+        {
+            throw new ValidacionException($"El campo '{campo}' debe ser un email válido.");
+        }
+
+        return normalizado;
     }
 }

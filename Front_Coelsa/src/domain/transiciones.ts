@@ -1,18 +1,19 @@
-// Espejo de Coelsa.Domain/Validaciones/TransicionesEstado.cs (SPEC 5.3 + Fase A).
+// Espejo de Coelsa.Domain/Validaciones/TransicionesEstado.cs (SPEC 5.3 + Fase A + B5).
 // Pendiente, Repudiado y EnCustodia son exclusivos de echeqs en la práctica:
 // los cheques físicos nacen en Emitido y nunca los alcanzan.
 import type { EstadoInstrumento } from './tipos';
 
 const TRANSICIONES_VALIDAS: Readonly<Record<EstadoInstrumento, readonly EstadoInstrumento[]>> = {
   Pendiente: ['Emitido', 'Repudiado', 'Anulado'],
-  Emitido: ['Depositado', 'Anulado', 'EnCustodia'],
+  Emitido: ['Depositado', 'Anulado', 'EnCustodia', 'Caducado'],
   Depositado: ['Compensado', 'Rechazado'],
   Compensado: ['Pagado'],
-  EnCustodia: ['Emitido', 'Depositado'],
+  EnCustodia: ['Emitido', 'Depositado', 'Caducado'],
   Rechazado: [],
   Anulado: [],
   Pagado: [],
   Repudiado: [],
+  Caducado: [],
 };
 
 export function esTransicionValida(desde: EstadoInstrumento, hacia: EstadoInstrumento): boolean {

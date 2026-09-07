@@ -27,6 +27,41 @@ public interface IEcheqRepository : IInstrumentoRepository<Echeq>
 
     /// <summary>Echeqs activos en custodia cuya fecha de vencimiento ya pasó.</summary>
     Task<IReadOnlyList<Echeq>> ListarCustodiasVencidasAsync(DateOnly hoy, CancellationToken ct);
+
+    /// <summary>Listado por CUIT con filtros opcionales (Fase B6).</summary>
+    Task<(IReadOnlyList<Echeq> Items, int TotalCount)> ListarFiltradoAsync(
+        string cuit, Dtos.FiltrosEcheq filtros, int page, int pageSize, CancellationToken ct);
+}
+
+/// <summary>
+/// Puerto de persistencia de cuentas corrientes emisoras de echeqs (Fase B).
+/// </summary>
+public interface ICuentaRepository
+{
+    Task<Cuenta?> ObtenerPorCbuAsync(string cbu, CancellationToken ct);
+
+    Task<bool> ExisteCbuAsync(string cbu, CancellationToken ct);
+
+    Task<IReadOnlyList<Cuenta>> ListarPorCuitAsync(string cuit, CancellationToken ct);
+
+    void Agregar(Cuenta entidad);
+}
+
+/// <summary>
+/// Puerto de persistencia de e-chequeras (Fase B).
+/// </summary>
+public interface IChequeraRepository
+{
+    Task<Chequera?> ObtenerAsync(Guid cuentaId, int numero, CancellationToken ct);
+
+    Task<IReadOnlyList<Chequera>> ListarPorCuentaAsync(Guid cuentaId, CancellationToken ct);
+
+    Task<int> ContarPorCuentaAsync(Guid cuentaId, CancellationToken ct);
+
+    /// <summary>Primera chequera vigente de la cuenta con números disponibles.</summary>
+    Task<Chequera?> ObtenerConLugarAsync(Guid cuentaId, CancellationToken ct);
+
+    void Agregar(Chequera entidad);
 }
 
 /// <summary>
@@ -53,6 +88,20 @@ public interface IDevolucionRepository
     Task<bool> ExisteSolicitadaAsync(Guid echeqId, CancellationToken ct);
 
     void Agregar(Devolucion devolucion);
+}
+
+/// <summary>
+/// Puerto de persistencia de cesiones de echeqs "no a la orden" (Fase D1).
+/// </summary>
+public interface ICesionRepository
+{
+    Task<IReadOnlyList<Cesion>> ListarPorEcheqAsync(Guid echeqId, CancellationToken ct);
+
+    Task<Cesion?> ObtenerPorNumeroAsync(Guid echeqId, int numero, CancellationToken ct);
+
+    Task<bool> ExisteSolicitadaAsync(Guid echeqId, CancellationToken ct);
+
+    void Agregar(Cesion cesion);
 }
 
 public interface IUnitOfWork

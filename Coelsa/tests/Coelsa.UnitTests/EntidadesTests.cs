@@ -1,6 +1,7 @@
 using Coelsa.Domain;
 using Coelsa.Domain.Entidades;
 using Coelsa.Domain.Validaciones;
+using Coelsa.Domain.ValueObjects;
 using Xunit;
 
 namespace Coelsa.UnitTests;
@@ -11,8 +12,6 @@ public class EntidadesTests
     private const string CuitLibrador = "2012345678";
     private const string CuitBeneficiario = "2787654321";
     private static string CuitValido(string base10) => ValidadorCuit.Completar(base10);
-
-    private static string Cmc7Valido(string banco = "060") => $"{banco}000114250000123400001234567";
 
     private static ChequeFisico CrearCheque(
         string? cmc7 = "060000114250000123400001234567",
@@ -36,13 +35,24 @@ public class EntidadesTests
     private static Echeq CrearEcheq(
         string? idEcheq = "ABCDEFGHIJK",
         string? cmc7 = null,
+        int numeroCheque = 1,
+        Caracter caracter = Caracter.AlaOrden,
         string? cuitLibrador = CuitLibrador,
         string? cuitBeneficiario = CuitBeneficiario,
         decimal? monto = 250_000m,
         DateOnly? fechaVencimiento = null)
-        => Echeq.Crear(
+    {
+        var cbu = FabricaEcheqs.Cbu;
+        return Echeq.Crear(
             idEcheq!,
-            cmc7 ?? Cmc7Valido("011"),
+            cbu,
+            1,
+            numeroCheque,
+            caracter,
+            TipoDocumento.Cuit,
+            "Librador Demo S.A.",
+            "Beneficiario Demo S.A.",
+            cmc7 ?? Cmc7.Derivar(cbu, numeroCheque).Valor,
             CuitValido(cuitLibrador ?? CuitLibrador),
             CuitValido(cuitBeneficiario ?? CuitBeneficiario),
             monto!.Value,
@@ -51,6 +61,7 @@ public class EntidadesTests
             null,
             fechaVencimiento ?? Hoy.AddDays(30),
             Hoy);
+    }
 
     [Fact]
     public void ChequeFisico_Crear_QuedaEnEstadoEmitidoYActivo()
@@ -205,10 +216,20 @@ public class EntidadesTests
     {
         var echeq = CrearEcheq();
 
-        echeq.Repudiar();
+        echeq.Repudiar("No reconozco la deuda");
 
         Assert.Equal(EstadoInstrumento.Repudiado, echeq.Estado);
+        Assert.Equal("No reconozco la deuda", echeq.MotivoRepudio);
         Assert.Empty(TransicionesEstado.DestinosDesde(EstadoInstrumento.Repudiado));
+    }
+
+    [Fact]
+    public void Echeq_Repudiar_SinMotivo_LanzaValidacion()
+    {
+        var echeq = CrearEcheq();
+
+        Assert.Throws<ValidacionException>(() => echeq.Repudiar(null));
+        Assert.Throws<ValidacionException>(() => echeq.Repudiar("  "));
     }
 
     [Fact]
@@ -271,6 +292,85 @@ public class EntidadesTests
     public void Echeq_Crear_ConVencimientoNoPosteriorAEmision_LanzaExcepcion()
     {
         Assert.Throws<ValidacionException>(() => CrearEcheq(fechaVencimiento: Hoy));
+    }
+
+    [Fact]
+    public void Echeq_Crear_ConTenorMayorA360Dias_LanzaExcepcion()
+    {
+        Assert.Throws<ValidacionException>(() => CrearEcheq(fechaVencimiento: Hoy.AddDays(361)));
+        Assert.Throws<ValidacionException>(() => CrearCheque(fechaVencimiento: Hoy.AddDays(361)));
+    }
+
+    [Fact]
+    public void Echeq_Crear_ConGestionNormalizaYValida()
+    {
+        var echeq = Echeq.Crear(
+            "ABCDEFGHIJK",
+            FabricaEcheqs.Cbu,
+            1,
+            1,
+            Caracter.AlaOrden,
+            TipoDocumento.Cuit,
+            "Librador Demo S.A.",
+            "Beneficiario Demo S.A.",
+            Cmc7.Derivar(FabricaEcheqs.Cbu, 1).Valor,
+            CuitValido(CuitLibrador),
+            CuitValido(CuitBeneficiario),
+            250_000m,
+            Moneda.Pesos,
+            Hoy,
+            null,
+            Hoy.AddDays(30),
+            Hoy,
+            concepto: "  Pago a proveedores  ",
+            motivo: null,
+            referencia: "",
+            emailNotificacion: "cobros@demo.local");
+
+        Assert.Equal("Pago a proveedores", echeq.Concepto);
+        Assert.Null(echeq.Motivo);
+        Assert.Null(echeq.Referencia);
+        Assert.Equal("cobros@demo.local", echeq.EmailNotificacion);
+    }
+
+    [Theory]
+    [InlineData("sin-arroba")]
+    [InlineData("a@")]
+    [InlineData("a@b")]
+    public void Echeq_Crear_ConEmailInvalido_LanzaExcepcion(string email)
+    {
+        Assert.Throws<ValidacionException>(() => CrearEcheqConGestion(emailNotificacion: email));
+    }
+
+    [Fact]
+    public void Echeq_Crear_ConConceptoMuyLargo_LanzaExcepcion()
+    {
+        Assert.Throws<ValidacionException>(() => CrearEcheqConGestion(concepto: new string('x', 61)));
+    }
+
+    private static Echeq CrearEcheqConGestion(string? concepto = null, string? emailNotificacion = null)
+    {
+        var cbu = FabricaEcheqs.Cbu;
+        return Echeq.Crear(
+            "ABCDEFGHIJK",
+            cbu,
+            1,
+            1,
+            Caracter.AlaOrden,
+            TipoDocumento.Cuit,
+            "Librador Demo S.A.",
+            "Beneficiario Demo S.A.",
+            Cmc7.Derivar(cbu, 1).Valor,
+            CuitValido(CuitLibrador),
+            CuitValido(CuitBeneficiario),
+            250_000m,
+            Moneda.Pesos,
+            Hoy,
+            null,
+            Hoy.AddDays(30),
+            Hoy,
+            concepto: concepto,
+            emailNotificacion: emailNotificacion);
     }
 
     [Fact]

@@ -3,13 +3,15 @@
 // En echeqs suma las secciones Fase A: aceptación (Pendiente), cadena de endosos
 // y devoluciones. La custodia se opera desde Acciones (gobernada por la máquina).
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Printer } from 'lucide-react';
 import { Button } from '@/presentation/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/presentation/ui/card';
 import { Skeleton } from '@/presentation/ui/skeleton';
 import type { TipoInstrumentoForm } from '@/domain/estrategias/estrategiaCreacion';
 import type {
   IPuertoAceptacion,
+  IPuertoCesiones,
+  IPuertoCertificado,
   IPuertoDevoluciones,
   IPuertoEndosos,
   IPuertoInstrumentos,
@@ -21,6 +23,8 @@ import BotonBaja from './BotonBaja';
 import SeccionAceptacion from './SeccionAceptacion';
 import CadenaEndosos from './CadenaEndosos';
 import SeccionDevoluciones from './SeccionDevoluciones';
+import SeccionCesiones from './SeccionCesiones';
+import TarjetaCertificado from './TarjetaCertificado';
 
 interface Props {
   tipo: TipoInstrumentoForm;
@@ -28,6 +32,8 @@ interface Props {
   puertoAceptacion?: IPuertoAceptacion;
   puertoEndosos?: IPuertoEndosos;
   puertoDevoluciones?: IPuertoDevoluciones;
+  puertoCesiones?: IPuertoCesiones;
+  puertoCertificado?: IPuertoCertificado;
 }
 
 export default function PaginaDetalle({
@@ -36,21 +42,41 @@ export default function PaginaDetalle({
   puertoAceptacion,
   puertoEndosos,
   puertoDevoluciones,
+  puertoCesiones,
+  puertoCertificado,
 }: Props) {
   const { identificador = '' } = useParams();
   const detalle = useObtenerInstrumento(tipo, identificador, puerto);
   const esEcheq = tipo === 'Echeq';
   const estaPendiente = detalle.isSuccess && detalle.data.estado === 'Pendiente';
   const estaEmitido = detalle.isSuccess && detalle.data.estado === 'Emitido';
+  // Solo los echeqs 'A la orden' admiten endosos (Fase B); los 'No a la orden'
+  // van por cesión (Fase D). Discriminante `tipo` para angostar la unión.
+  const esNoAlaOrden =
+    detalle.isSuccess && detalle.data.tipo === 'Echeq' && detalle.data.caracter !== 'AlaOrden';
+  const estaRechazado = detalle.isSuccess && detalle.data.estado === 'Rechazado';
 
   return (
     <div className="flex flex-col gap-4">
-      <Button asChild variant="ghost" className="w-fit">
-        <Link to="/">
-          <ArrowLeft className="size-4" aria-hidden />
-          Volver a la consulta
-        </Link>
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button asChild variant="ghost" className="w-fit">
+          <Link to="/">
+            <ArrowLeft className="size-4" aria-hidden />
+            Volver a la consulta
+          </Link>
+        </Button>
+        {esEcheq && detalle.isSuccess && (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-fit print:hidden"
+            onClick={() => window.print?.()}
+          >
+            <Printer className="size-4" aria-hidden />
+            Imprimir comprobante
+          </Button>
+        )}
+      </div>
 
       {detalle.isPending && (
         <Card>
@@ -143,7 +169,8 @@ export default function PaginaDetalle({
               <CardContent>
                 <CadenaEndosos
                   idecheq={detalle.data.identificador}
-                  puedeEndosar={estaEmitido}
+                  puedeEndosar={estaEmitido && !esNoAlaOrden}
+                  soloCesion={esNoAlaOrden}
                   puerto={puertoEndosos}
                 />
               </CardContent>
@@ -160,6 +187,33 @@ export default function PaginaDetalle({
                   tenedorActual={detalle.data.cuitBeneficiario}
                   puedeSolicitar={estaEmitido}
                   puerto={puertoDevoluciones}
+                />
+              </CardContent>
+            </Card>
+          )}
+          {esEcheq && esNoAlaOrden && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Cesiones</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SeccionCesiones
+                  idecheq={detalle.data.identificador}
+                  puedeSolicitar={estaEmitido}
+                  puerto={puertoCesiones}
+                />
+              </CardContent>
+            </Card>
+          )}
+          {esEcheq && estaRechazado && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Certificado para acciones civiles</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TarjetaCertificado
+                  idecheq={detalle.data.identificador}
+                  puerto={puertoCertificado}
                 />
               </CardContent>
             </Card>

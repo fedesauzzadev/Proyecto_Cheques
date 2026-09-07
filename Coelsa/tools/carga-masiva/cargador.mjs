@@ -9,7 +9,7 @@
 // - Genera CMC7 únicos y deterministas por índice: reanuda sin duplicar
 //   (guarda progreso en progreso.json, mismo directorio).
 // - Respeta la regla de negocio: vencimiento > emisión/diferimiento y
-//   tenor (vencimiento − emisión) ≤ 365 días.
+//   tenor (vencimiento − emisión) ≤ 360 días.
 // - 80% queda en estado inicial (cheque Emitido / echeq Pendiente).
 // - Reintenta 429 respetando Retry-After y 5xx/red con backoff.
 //
@@ -21,7 +21,45 @@ import { fileURLToPath } from 'node:url';
 const ARCHIVO_PROGRESO = new URL('./progreso.json', import.meta.url);
 
 const CUITS = ['20123456786', '27876543219', '30511222334', '20334455662'];
+const NOMBRES = {
+  20123456786: 'Alfa S.R.L.',
+  27876543219: 'Beta S.A.',
+  30511222334: 'Gómez Juan Pérez',
+  20334455662: 'Delta Coop. Ltda.',
+};
 const MOTIVOS = [11, 12, 21, 25];
+const CONCEPTOS = ['Pago a proveedores', 'Honorarios', 'Alquiler', 'Sueldos', null, null];
+
+/** CBU válido según BCRA: espejo de ValidadorCbu (pesos oficiales por bloque). */
+export function cbuCrear(entidad, sucursal, cuenta13) {
+  const dv = (bloque, pesos) => {
+    const suma = [...bloque].reduce((acc, d, i) => acc + Number(d) * pesos[i], 0);
+    return String((10 - (suma % 10)) % 10);
+  };
+  const b1 = entidad + sucursal;
+  return b1 + dv(b1, [7, 1, 3, 9, 7, 1, 3]) + cuenta13 + dv(cuenta13, [3, 9, 7, 1, 3, 9, 7, 1, 3, 9, 7, 1, 3]);
+}
+
+/** 8 cuentas demo (4 CUITs × pesos/dólares): el echeq exige cuenta en su moneda. */
+export function cuentasDemo() {
+  const cuentas = [];
+  CUITS.forEach((cuit, i) => {
+    for (const moneda of ['P', 'D']) {
+      const n = i * 2 + (moneda === 'D' ? 2 : 1);
+      cuentas.push({
+        cuit,
+        nombre: NOMBRES[cuit],
+        moneda,
+        cbu: cbuCrear('011', String(n).padStart(4, '0'), String(n).padStart(13, '0')),
+      });
+    }
+  });
+  return cuentas;
+}
+
+export function cbuPara(cuit, moneda) {
+  return cuentasDemo().find((c) => c.cuit === cuit && c.moneda === moneda).cbu;
+}
 
 export function leerArgs(argv = process.argv.slice(2)) {
   const args = {};
@@ -50,7 +88,7 @@ export function sumarDias(base, n) {
   return new Date(base.getTime() + n * 86400000);
 }
 
-/** CMC7 únicos de 30 dígitos por índice (banco 060, CP 1425). */
+/** CMC7 únicos de 30 dígitos por índice (banco 060, CP 1425). Solo cheques físicos. */
 export function cmc7Cheque(i) {
   return (
     '060' +
@@ -61,23 +99,12 @@ export function cmc7Cheque(i) {
   );
 }
 
-/** CMC7 únicos de 30 dígitos por índice (banco 065, CP 2077). */
-export function cmc7Echeq(i) {
-  return (
-    '065' +
-    String(i % 10000).padStart(4, '0') +
-    '2077' +
-    String(i).padStart(8, '0') +
-    String(90000000000 + i).padStart(11, '0')
-  );
-}
-
-/** Fechas variadas respetando: diferimiento ≥ emisión, vencimiento mayor a ambas y tenor ≤ 365. */
+/** Fechas variadas respetando: diferimiento ≥ emisión, vencimiento mayor a ambas y tenor ≤ 360. */
 export function armarFechas(hoy) {
   const emision = sumarDias(hoy, -randInt(0, 365));
   const dif = Math.random() < 0.5 ? null : sumarDias(emision, randInt(0, 90));
   const base = dif ?? emision;
-  const maxTenor = 365 - Math.round((base.getTime() - emision.getTime()) / 86400000);
+  const maxTenor = 360 - Math.round((base.getTime() - emision.getTime()) / 86400000);
   const vencimiento = sumarDias(base, randInt(1, maxTenor));
   return {
     fechaEmision: isoFecha(emision),
@@ -97,15 +124,54 @@ export function armarRequestCheque(i, hoy) {
   };
 }
 
+/** Echeqs: el CMC7 e IDECHEQ los deriva la API del CBU + chequera (Fase B). */
 export function armarRequestEcheq(i, hoy) {
+  const cuitLibrador = CUITS[i % 4];
+  const cuitBeneficiario = CUITS[(i + 1) % 4];
+  const moneda = Math.random() < 0.7 ? 'P' : 'D';
   return {
-    cmc7: cmc7Echeq(i),
-    cuitLibrador: CUITS[i % 4],
-    cuitBeneficiario: CUITS[(i + 1) % 4],
+    cbuEmisor: cbuPara(cuitLibrador, moneda),
+    caracter: Math.random() < 0.8 ? 'AlaOrden' : 'NoAlaOrden',
+    tipoDocBeneficiario: 'CUIT',
+    nombreLibrador: NOMBRES[cuitLibrador],
+    nombreBeneficiario: NOMBRES[cuitBeneficiario],
+    concepto: CONCEPTOS[randInt(0, CONCEPTOS.length - 1)],
+    referencia: `CARGA-${i}`,
+    emailNotificacion: Math.random() < 0.5 ? `cobros${i % 4}@demo.local` : null,
+    cuitLibrador,
+    cuitBeneficiario,
     monto: Math.round((10000 + Math.random() * 4990000) * 100) / 100,
-    moneda: Math.random() < 0.7 ? 'P' : 'D',
+    moneda,
     ...armarFechas(hoy),
   };
+}
+
+/** Crea las cuentas demo si faltan y pide chequeras hasta cubrir la capacidad. */
+export async function asegurarCuentasYChequeras(api, totalEcheqs) {
+  for (const { cuit, nombre, moneda, cbu } of cuentasDemo()) {
+    try {
+      await pedir(api, '/api/v1/cuentas', {
+        metodo: 'POST',
+        cuerpo: { cbu, cuitTitular: cuit, nombreTitular: nombre, moneda },
+        cabeceras: { 'Idempotency-Key': randomUUID() },
+      });
+    } catch (e) {
+      if (!String(e.message).includes('→ 409')) throw e; // la cuenta ya existe
+    }
+  }
+  // Capacidad por cuenta con margen (reparto aprox. uniforme entre las 8).
+  const porCuenta = Math.ceil(((totalEcheqs / 8) * 1.6) / 50) + 1;
+  for (const { cbu } of cuentasDemo()) {
+    const lista = await pedir(api, `/api/v1/cuentas/${cbu}/chequeras`);
+    const capacidad = lista.reduce((acc, c) => acc + (c.disponibles ?? 0), 0);
+    const faltan = Math.ceil(Math.max(0, porCuenta * 50 - capacidad) / 50);
+    for (let k = 0; k < faltan; k++) {
+      await pedir(api, `/api/v1/cuentas/${cbu}/chequeras`, {
+        metodo: 'POST',
+        cabeceras: { 'Idempotency-Key': randomUUID() },
+      });
+    }
+  }
 }
 
 /** Camino de estados extra (null = queda en inicial). */
@@ -167,16 +233,28 @@ export async function pedir(api, ruta, { metodo = 'GET', cuerpo, cabeceras = {} 
 async function crearInstrumento(api, tipo, i, hoy, conEstados) {
   const esEcheq = tipo === 'echeqs';
   const request = esEcheq ? armarRequestEcheq(i, hoy) : armarRequestCheque(i, hoy);
-  try {
-    var creado = await pedir(
-      api,
-      `/api/v1/${tipo}`,
-      { metodo: 'POST', cuerpo: request, cabeceras: { 'Idempotency-Key': randomUUID() } },
-    );
-  } catch (e) {
-    // 409 con CMC7 determinista = la fila ya existe (timeout anterior que sí impactó).
-    if (String(e.message).includes('→ 409')) return 'duplicado';
-    throw e;
+  const reintentosChequera = esEcheq ? 1 : 0;
+  for (let intento = 0; ; intento++) {
+    try {
+      var creado = await pedir(
+        api,
+        `/api/v1/${tipo}`,
+        { metodo: 'POST', cuerpo: request, cabeceras: { 'Idempotency-Key': randomUUID() } },
+      );
+      break;
+    } catch (e) {
+      // Chequera agotada a mitad de la carga: se pide una nueva y se reintenta una vez.
+      if (esEcheq && intento < reintentosChequera && /chequera/i.test(e.message)) {
+        await pedir(api, `/api/v1/cuentas/${request.cbuEmisor}/chequeras`, {
+          metodo: 'POST',
+          cabeceras: { 'Idempotency-Key': randomUUID() },
+        });
+        continue;
+      }
+      // 409 con CMC7/CBU determinista = la fila ya existe (timeout anterior que sí impactó).
+      if (String(e.message).includes('→ 409')) return 'duplicado';
+      throw e;
+    }
   }
   const id = creado.identificador;
 
@@ -296,6 +374,10 @@ async function main() {
   };
 
   console.log(`cheques pendientes: ${pendientesCq.length}, echeqs pendientes: ${pendientesEq.length}`);
+  if (pendientesEq.length > 0) {
+    console.log('asegurando cuentas y chequeras para echeqs…');
+    await asegurarCuentasYChequeras(api, pendientesEq.length);
+  }
   const r1 = await cargarLote({
     api, tipo: 'cheques', indices: pendientesCq, conEstados: true, conc, hoy, debeParar,
     reportar: (e) => { if (e.tipo === 'error') reportar(e); },

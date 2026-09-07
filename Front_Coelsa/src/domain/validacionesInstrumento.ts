@@ -4,6 +4,8 @@ import { esCuitValido } from './validadorCuit';
 import { esTransicionValida, destinosDesde } from './transiciones';
 import type { EstadoInstrumento, MotivoRechazo } from './tipos';
 
+export const TENOR_MAXIMO_DIAS = 360;
+
 export type ErroresCampo = Partial<Record<string, string>>;
 
 export interface DatosComunesInstrumento {
@@ -20,6 +22,12 @@ function hoyMasUnDia(hoy?: string): string {
   const fecha = new Date(`${base}T00:00:00Z`);
   fecha.setUTCDate(fecha.getUTCDate() + 1);
   return fecha.toISOString().slice(0, 10);
+}
+
+/** Días entre dos fechas YYYY-MM-DD (comparación lexicográfica = cronológica). */
+function diasEntre(desde: string, hasta: string): number {
+  const ms = Date.parse(`${hasta}T00:00:00Z`) - Date.parse(`${desde}T00:00:00Z`);
+  return Math.round(ms / 86400000);
 }
 
 export function validarComunes(datos: DatosComunesInstrumento, hoy?: string): ErroresCampo {
@@ -52,6 +60,10 @@ export function validarComunes(datos: DatosComunesInstrumento, hoy?: string): Er
 
   if (!(datos.fechaVencimiento > datos.fechaEmision)) {
     errores.fechaVencimiento = `La fecha de vencimiento ${datos.fechaVencimiento} debe ser posterior a la fecha de emisión ${datos.fechaEmision}.`;
+  } else if (
+    diasEntre(datos.fechaEmision, datos.fechaVencimiento) > TENOR_MAXIMO_DIAS
+  ) {
+    errores.fechaVencimiento = `El plazo entre la emisión y el vencimiento no puede superar los ${TENOR_MAXIMO_DIAS} días.`;
   }
 
   if (datos.fechaDiferimiento && !(datos.fechaVencimiento > datos.fechaDiferimiento)) {

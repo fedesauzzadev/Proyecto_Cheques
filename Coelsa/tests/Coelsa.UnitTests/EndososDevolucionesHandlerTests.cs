@@ -21,23 +21,17 @@ public class EndososDevolucionesHandlerTests
 
     private Echeq NuevoEcheqAceptado(
         string idEcheq = "ABCDEFGHIJK",
-        string cmc7 = "011000114250000123400001234567",
+        int numeroCheque = 1,
         string? cuitBeneficiario = null,
         DateOnly? emision = null,
         DateOnly? vencimiento = null)
     {
-        var fechaEmision = emision ?? Hoy;
-        var echeq = Echeq.Crear(
+        var echeq = FabricaEcheqs.Crear(
             idEcheq,
-            cmc7,
-            Cuit("2012345678"),
-            Cuit(cuitBeneficiario ?? "2787654321"),
-            250_000m,
-            Moneda.Dolares,
-            fechaEmision,
-            null,
-            vencimiento ?? Hoy.AddDays(30),
-            Hoy);
+            numeroCheque: numeroCheque,
+            baseBeneficiario: cuitBeneficiario ?? "2787654321",
+            emision: emision,
+            vencimiento: vencimiento);
         echeq.Aceptar();
         _echeqs.Agregar(echeq);
         return echeq;
@@ -46,9 +40,7 @@ public class EndososDevolucionesHandlerTests
     [Fact]
     public async Task Aceptar_Pendiente_PasaAEmitido()
     {
-        var echeq = Echeq.Crear(
-            "ABCDEFGHIJK", "011000114250000123400001234567", Cuit("2012345678"), Cuit("2787654321"),
-            250_000m, Moneda.Dolares, Hoy, null, Hoy.AddDays(30), Hoy);
+        var echeq = FabricaEcheqs.Crear();
         _echeqs.Agregar(echeq);
         var handler = new AceptarEcheqHandler(_echeqs, _unitOfWork, _cache);
 
@@ -69,15 +61,42 @@ public class EndososDevolucionesHandlerTests
     [Fact]
     public async Task Repudiar_Pendiente_PasaARepudiado()
     {
-        var echeq = Echeq.Crear(
-            "ABCDEFGHIJK", "011000114250000123400001234567", Cuit("2012345678"), Cuit("2787654321"),
-            250_000m, Moneda.Dolares, Hoy, null, Hoy.AddDays(30), Hoy);
+        var echeq = FabricaEcheqs.Crear();
         _echeqs.Agregar(echeq);
         var handler = new AceptarEcheqHandler(_echeqs, _unitOfWork, _cache);
 
-        var respuesta = await handler.Ejecutar("ABCDEFGHIJK", new AceptarEcheqRequest { Aceptada = false }, default);
+        var respuesta = await handler.Ejecutar(
+            "ABCDEFGHIJK",
+            new AceptarEcheqRequest { Aceptada = false, Motivo = "Importe incorrecto" },
+            default);
 
         Assert.Equal("Repudiado", respuesta.Estado);
+        Assert.Equal("Importe incorrecto", respuesta.MotivoRepudio);
+    }
+
+    [Fact]
+    public async Task Repudiar_SinMotivo_LanzaValidacion400()
+    {
+        var echeq = FabricaEcheqs.Crear();
+        _echeqs.Agregar(echeq);
+        var handler = new AceptarEcheqHandler(_echeqs, _unitOfWork, _cache);
+
+        await Assert.ThrowsAsync<ValidacionException>(
+            () => handler.Ejecutar("ABCDEFGHIJK", new AceptarEcheqRequest { Aceptada = false }, default));
+    }
+
+    [Fact]
+    public async Task Aceptar_ConMotivo_LanzaValidacion400()
+    {
+        var echeq = FabricaEcheqs.Crear();
+        _echeqs.Agregar(echeq);
+        var handler = new AceptarEcheqHandler(_echeqs, _unitOfWork, _cache);
+
+        await Assert.ThrowsAsync<ValidacionException>(
+            () => handler.Ejecutar(
+                "ABCDEFGHIJK",
+                new AceptarEcheqRequest { Aceptada = true, Motivo = "Sobra" },
+                default));
     }
 
     [Fact]
@@ -95,11 +114,22 @@ public class EndososDevolucionesHandlerTests
     }
 
     [Fact]
+    public async Task ProponerEndoso_NoAlaOrden_Lanza422()
+    {
+        var echeq = FabricaEcheqs.Crear(caracter: Domain.Caracter.NoAlaOrden);
+        echeq.Aceptar();
+        _echeqs.Agregar(echeq);
+        var handler = new ProponerEndosoHandler(_echeqs, _endosos, _unitOfWork, _cache);
+
+        await Assert.ThrowsAsync<TransicionInvalidaException>(
+            () => handler.Ejecutar(
+                "ABCDEFGHIJK", new ProponerEndosoRequest { CuitEndosatario = Cuit("3051122233") }, default));
+    }
+
+    [Fact]
     public async Task ProponerEndoso_Pendiente_Lanza422()
     {
-        var echeq = Echeq.Crear(
-            "ABCDEFGHIJK", "011000114250000123400001234567", Cuit("2012345678"), Cuit("2787654321"),
-            250_000m, Moneda.Dolares, Hoy, null, Hoy.AddDays(30), Hoy);
+        var echeq = FabricaEcheqs.Crear();
         _echeqs.Agregar(echeq);
         var handler = new ProponerEndosoHandler(_echeqs, _endosos, _unitOfWork, _cache);
 
@@ -226,11 +256,14 @@ public class EndososDevolucionesHandlerTests
     public async Task DepositarCustodiasVencidas_SoloVencidas()
     {
         var vencida = NuevoEcheqAceptado(
-            "AAAAAAAAAAA", "060000114250000123400001234567", null, Hoy.AddDays(-60), Hoy.AddDays(-1));
+            "AAAAAAAAAAA", 10, null, Hoy.AddDays(-60), Hoy.AddDays(-1));
         vencida.PonerEnCustodia();
         var noVencida = NuevoEcheqAceptado(
-            "BBBBBBBBBBB", "060000114250000123400001234568");
+            "BBBBBBBBBBB", 11);
         noVencida.PonerEnCustodia();
+        var caducada = NuevoEcheqAceptado(
+            "CCCCCCCCCCC", 12, null, Hoy.AddDays(-70), Hoy.AddDays(-40));
+        caducada.PonerEnCustodia();
         var handler = new DepositarCustodiasVencidasHandler(_echeqs, _unitOfWork, _cache);
 
         var cantidad = await handler.Ejecutar(Hoy, default);
@@ -238,5 +271,17 @@ public class EndososDevolucionesHandlerTests
         Assert.Equal(1, cantidad);
         Assert.Equal(EstadoInstrumento.Depositado, vencida.Estado);
         Assert.Equal(EstadoInstrumento.EnCustodia, noVencida.Estado);
+        Assert.Equal(EstadoInstrumento.Caducado, caducada.Estado);
+    }
+
+    [Fact]
+    public async Task CambiarEstado_DepositoFueraDeVentana_Lanza422()
+    {
+        var echeq = NuevoEcheqAceptado(
+            "DDDDDDDDDDD", 13, null, Hoy.AddDays(-60), Hoy.AddDays(-40));
+        var handler = new CambiarEstadoEcheqHandler(_echeqs, _unitOfWork, _cache);
+
+        await Assert.ThrowsAsync<TransicionInvalidaException>(
+            () => handler.Ejecutar("DDDDDDDDDDD", new CambiarEstadoRequest { Estado = "Depositado" }, default));
     }
 }

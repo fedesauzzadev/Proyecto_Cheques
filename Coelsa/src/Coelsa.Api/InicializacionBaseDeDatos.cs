@@ -2,6 +2,7 @@ using Coelsa.Application;
 using Coelsa.Domain;
 using Coelsa.Domain.Entidades;
 using Coelsa.Domain.Validaciones;
+using Coelsa.Domain.ValueObjects;
 using Coelsa.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -76,49 +77,62 @@ public static class InicializacionBaseDeDatos
             }
         }
 
+        // Fase B: una cuenta por CUIT demo (más una en dólares para cuits[0],
+        // que emite los echeqs en dólares del seed). Cada una con su chequera N° 1.
+        var nombres = new Dictionary<string, string>
+        {
+            [cuits[0]] = "Alfa S.R.L.",
+            [cuits[1]] = "Beta S.A.",
+            [cuits[2]] = "Gómez Juan Pérez",
+            [cuits[3]] = "Delta Coop. Ltda."
+        };
+        var cuentasDemo = new Dictionary<(string Cuit, Moneda Moneda), Cuenta>();
+        var chequerasDemo = new Dictionary<(string Cuit, Moneda Moneda), Chequera>();
+        if (!await db.Cuentas.AnyAsync())
+        {
+            var combinaciones = new[]
+            {
+                (cuits[0], Moneda.Pesos), (cuits[0], Moneda.Dolares),
+                (cuits[1], Moneda.Pesos), (cuits[2], Moneda.Pesos), (cuits[3], Moneda.Pesos)
+            };
+
+            var sucursal = 1;
+            foreach (var (cuit, moneda) in combinaciones)
+            {
+                var cbu = ValidadorCbu.Crear("011", $"{sucursal++:D4}", $"{sucursal:D13}");
+                var cuenta = Cuenta.Crear(cbu, cuit, nombres[cuit], moneda);
+                db.Cuentas.Add(cuenta);
+                cuentasDemo[(cuit, moneda)] = cuenta;
+
+                var chequera = Chequera.Solicitar(cuenta.Id, 1);
+                db.Chequeras.Add(chequera);
+                chequerasDemo[(cuit, moneda)] = chequera;
+            }
+        }
+        else if (!await db.Echeqs.AnyAsync())
+        {
+            // Las cuentas ya existen pero no hay echeqs (migración B1): se reutilizan
+            // las chequeras con lugar de cada combinación (cuit, moneda).
+            foreach (var cuenta in await db.Cuentas.ToListAsync())
+            {
+                var chequera = await db.Chequeras
+                    .Where(c => c.CuentaId == cuenta.Id && c.Estado == EstadoChequera.Vigente)
+                    .OrderBy(c => c.Numero)
+                    .FirstOrDefaultAsync();
+                if (chequera is not null)
+                {
+                    cuentasDemo[(cuenta.CuitTitular, cuenta.Moneda)] = cuenta;
+                    chequerasDemo[(cuenta.CuitTitular, cuenta.Moneda)] = chequera;
+                }
+            }
+        }
+
         if (!await db.Echeqs.AnyAsync())
         {
             var generadorIdEcheq = scope.ServiceProvider.GetRequiredService<IGeneradorIdEcheq>();
             var idsEcheq = new HashSet<string>();
 
-            for (var i = 1; i <= 12; i++)
-            {
-                string idEcheq;
-                do
-                {
-                    idEcheq = generadorIdEcheq.Generar();
-                }
-                while (!idsEcheq.Add(idEcheq));
-
-                // CMC7 propio del echeq (CP 2077 para no cruzarse con los físicos).
-                var cmc7 = $"{bancos[(i + 2) % bancos.Length]}{i:D4}{2077:D4}{(i + 40):D8}{(98765432100 + i):D11}";
-
-                var emision = hoy.AddDays(-(i % 8));
-                DateOnly? diferimiento = i % 3 == 0 ? hoy.AddDays(i % 45) : null;
-                var echeq = Echeq.Crear(
-                    idEcheq,
-                    cmc7,
-                    cuits[i % cuits.Length],
-                    cuits[(i + 2) % cuits.Length],
-                    monto: 80_000m * (i % 5 + 1),
-                    i % 4 == 0 ? Moneda.Dolares : Moneda.Pesos,
-                    emision,
-                    diferimiento,
-                    (diferimiento ?? emision).AddDays(30),
-                    hoy);
-                echeq.Aceptar();
-
-                AplicarEstadoDemo(echeq, i);
-
-                db.Echeqs.Add(echeq);
-            }
-
-            // Vitrina Fase A: estados y cadenas que el flujo normal no genera solo.
-            // CMC7 con CP 2078 para no cruzarse con el resto del seed.
-            string Cmc7Extra(int n) =>
-                $"034{n:D4}{2078:D4}{(n + 60):D8}{(11111111100 + n):D11}";
-
-            string IdUnicoExtra()
+            string IdUnico()
             {
                 string id;
                 do
@@ -129,29 +143,80 @@ public static class InicializacionBaseDeDatos
                 return id;
             }
 
+            // Reserva un número de la chequera del (librador, moneda) y deriva su CMC7.
+            Echeq NuevoEcheq(string cuitLibrador, string cuitBeneficiario, decimal monto, Moneda moneda,
+                DateOnly emision, DateOnly? diferimiento, DateOnly vencimiento, DateOnly hoy,
+                Caracter caracter = Caracter.AlaOrden, string? concepto = null, string? referencia = null)
+            {
+                var chequera = chequerasDemo[(cuitLibrador, moneda)];
+                var cuenta = cuentasDemo[(cuitLibrador, moneda)];
+                var numero = chequera.ReservarNumero();
+                return Echeq.Crear(
+                    IdUnico(),
+                    cuenta.Cbu,
+                    chequera.Numero,
+                    numero,
+                    caracter,
+                    TipoDocumento.Cuit,
+                    nombres[cuitLibrador],
+                    nombres[cuitBeneficiario],
+                    Cmc7.Derivar(cuenta.Cbu, numero).Valor,
+                    cuitLibrador,
+                    cuitBeneficiario,
+                    monto,
+                    moneda,
+                    emision,
+                    diferimiento,
+                    vencimiento,
+                    hoy,
+                    concepto: concepto,
+                    referencia: referencia);
+            }
+
+            for (var i = 1; i <= 12; i++)
+            {
+                var moneda = i % 4 == 0 ? Moneda.Dolares : Moneda.Pesos;
+                var emision = hoy.AddDays(-(i % 8));
+                DateOnly? diferimiento = i % 3 == 0 ? hoy.AddDays(i % 45) : null;
+                var echeq = NuevoEcheq(
+                    cuits[i % cuits.Length],
+                    cuits[(i + 2) % cuits.Length],
+                    monto: 80_000m * (i % 5 + 1),
+                    moneda,
+                    emision,
+                    diferimiento,
+                    (diferimiento ?? emision).AddDays(30),
+                    hoy,
+                    caracter: i % 4 == 1 ? Caracter.NoAlaOrden : Caracter.AlaOrden,
+                    concepto: i % 2 == 0 ? "Pago a proveedores" : null,
+                    referencia: $"SEED-{i:000}");
+                echeq.Aceptar();
+
+                AplicarEstadoDemo(echeq, i);
+
+                db.Echeqs.Add(echeq);
+            }
+
+            // Vitrina Fase A: estados y cadenas que el flujo normal no genera solo.
             // 1. Pendiente de aceptación.
-            db.Echeqs.Add(Echeq.Crear(
-                IdUnicoExtra(), Cmc7Extra(1), cuits[0], cuits[1], 100_000m, Moneda.Pesos,
+            db.Echeqs.Add(NuevoEcheq(cuits[0], cuits[1], 100_000m, Moneda.Pesos,
                 hoy, null, hoy.AddDays(30), hoy));
 
             // 2. Repudiado por el beneficiario.
-            var repudiado = Echeq.Crear(
-                IdUnicoExtra(), Cmc7Extra(2), cuits[0], cuits[1], 200_000m, Moneda.Pesos,
+            var repudiado = NuevoEcheq(cuits[0], cuits[1], 200_000m, Moneda.Pesos,
                 hoy, null, hoy.AddDays(30), hoy);
-            repudiado.Repudiar();
+            repudiado.Repudiar("No reconozco la operación");
             db.Echeqs.Add(repudiado);
 
             // 3. En custodia.
-            var custodia = Echeq.Crear(
-                IdUnicoExtra(), Cmc7Extra(3), cuits[0], cuits[1], 300_000m, Moneda.Pesos,
+            var custodia = NuevoEcheq(cuits[0], cuits[1], 300_000m, Moneda.Pesos,
                 hoy, null, hoy.AddDays(30), hoy);
             custodia.Aceptar();
             custodia.PonerEnCustodia();
             db.Echeqs.Add(custodia);
 
             // 4. Con cadena de endosos (2 vigentes) y devolución solicitada.
-            var cadena = Echeq.Crear(
-                IdUnicoExtra(), Cmc7Extra(4), cuits[0], cuits[1], 400_000m, Moneda.Dolares,
+            var cadena = NuevoEcheq(cuits[0], cuits[1], 400_000m, Moneda.Dolares,
                 hoy, null, hoy.AddDays(30), hoy);
             cadena.Aceptar();
             db.Echeqs.Add(cadena);
@@ -163,6 +228,13 @@ public static class InicializacionBaseDeDatos
             cadena.FijarCantidadEndosos(2);
             db.Endosos.AddRange(endoso1, endoso2);
             db.Devoluciones.Add(Devolucion.Solicitar(cadena.Id, 1, cuits[0], "Devolución de demostración"));
+
+            // 5. Vitrina Fase D1: echeq "no a la orden" con cesión solicitada.
+            var cedido = NuevoEcheq(cuits[2], cuits[3], 150_000m, Moneda.Pesos,
+                hoy, null, hoy.AddDays(30), hoy, caracter: Caracter.NoAlaOrden);
+            cedido.Aceptar();
+            db.Echeqs.Add(cedido);
+            db.Cesiones.Add(Cesion.Solicitar(cedido.Id, 1, cuits[3], cuits[0], "Av. Siempreviva 742"));
         }
 
         await db.SaveChangesAsync();

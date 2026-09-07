@@ -13,6 +13,16 @@ public class EcheqConfiguracion : IEntityTypeConfiguration<Echeq>
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.IdEcheq).HasMaxLength(11).IsRequired();
+        builder.Property(e => e.CbuEmisor).HasMaxLength(22).IsRequired();
+        builder.Property(e => e.Caracter).HasConversion<int>();
+        builder.Property(e => e.TipoDocBeneficiario).HasConversion<int>();
+        builder.Property(e => e.NombreLibrador).HasMaxLength(120).IsRequired();
+        builder.Property(e => e.NombreBeneficiario).HasMaxLength(120).IsRequired();
+        builder.Property(e => e.Concepto).HasMaxLength(60);
+        builder.Property(e => e.Motivo).HasMaxLength(280);
+        builder.Property(e => e.Referencia).HasMaxLength(60);
+        builder.Property(e => e.EmailNotificacion).HasMaxLength(160);
+        builder.Property(e => e.MotivoRepudio).HasMaxLength(280);
         builder.Property(e => e.Cmc7).HasMaxLength(30).IsRequired();
         builder.Property(e => e.CuitLibrador).HasMaxLength(11).IsRequired();
         builder.Property(e => e.CuitBeneficiario).HasMaxLength(11).IsRequired();
@@ -22,6 +32,9 @@ public class EcheqConfiguracion : IEntityTypeConfiguration<Echeq>
 
         builder.HasIndex(e => e.IdEcheq).IsUnique();
         builder.HasIndex(e => e.Cmc7).IsUnique();
+        builder.HasIndex(e => new { e.CbuEmisor, e.NumeroChequera, e.NumeroCheque })
+            .IsUnique()
+            .HasDatabaseName("ix_echeqs_cbu_chequera_numero");
 
         builder.HasIndex(e => new { e.CuitLibrador, e.FechaCreacion })
             .HasFilter("\"Activo\" = true")

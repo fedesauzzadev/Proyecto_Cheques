@@ -16,6 +16,8 @@ describe('esTransicionValida', () => {
     ['Emitido', 'EnCustodia'],
     ['EnCustodia', 'Emitido'],
     ['EnCustodia', 'Depositado'],
+    ['Emitido', 'Caducado'],
+    ['EnCustodia', 'Caducado'],
   ] as const)('acepta la transición del diagrama %s → %s', (desde, hacia) => {
     expect(esTransicionValida(desde, hacia)).toBe(true);
   });
@@ -43,6 +45,7 @@ describe('esTransicionValida', () => {
     expect(destinosDesde('Rechazado')).toEqual([]);
     expect(destinosDesde('Pagado')).toEqual([]);
     expect(destinosDesde('Repudiado')).toEqual([]);
+    expect(destinosDesde('Caducado')).toEqual([]);
   });
 });
 

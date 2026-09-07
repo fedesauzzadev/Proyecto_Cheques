@@ -46,6 +46,33 @@ export default function CamposEstrategia<TRequest>({
                 <SelectItem value="D">Dólares (US$)</SelectItem>
               </SelectContent>
             </Select>
+          ) : campo.tipo === 'caracter' ? (
+            <Select
+              value={valores[campo.nombre] ?? 'AlaOrden'}
+              onValueChange={(valor) => onCambiar(campo.nombre, valor)}
+            >
+              <SelectTrigger id={`campo-${campo.nombre}`} className="max-w-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AlaOrden">A la orden (endosable)</SelectItem>
+                <SelectItem value="NoAlaOrden">No a la orden (solo cesión)</SelectItem>
+              </SelectContent>
+            </Select>
+          ) : campo.tipo === 'tipodoc' ? (
+            <Select
+              value={valores[campo.nombre] ?? 'CUIT'}
+              onValueChange={(valor) => onCambiar(campo.nombre, valor)}
+            >
+              <SelectTrigger id={`campo-${campo.nombre}`} className="max-w-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="CUIT">CUIT</SelectItem>
+                <SelectItem value="CUIL">CUIL</SelectItem>
+                <SelectItem value="CDI">CDI</SelectItem>
+              </SelectContent>
+            </Select>
           ) : (
             <Input
               id={`campo-${campo.nombre}`}
@@ -55,7 +82,9 @@ export default function CamposEstrategia<TRequest>({
               inputMode={
                 campo.tipo === 'numero'
                   ? 'decimal'
-                  : campo.nombre.includes('cuit') || campo.nombre === 'cmc7'
+                  : campo.nombre.includes('cuit') ||
+                      campo.nombre === 'cmc7' ||
+                      campo.nombre === 'cbuEmisor'
                     ? 'numeric'
                     : undefined
               }

@@ -34,11 +34,29 @@ la fuente de verdad simulada de los instrumentos negociables.
 
 ### RF-01 — Creación de instrumentos (con Strategy)
 - `POST /api/v1/cheques` crea un **cheque físico**.
-- `POST /api/v1/echeqs` crea un **echeq**.
+- `POST /api/v1/echeqs` crea un **echeq** (exige `cbuEmisor` con chequera vigente).
 - Cada tipo es creado por su **estrategia de creación** (patrón Strategy):
   - `ChequeFisicoCreationStrategy`: valida CMC7 único y bien formado (30 dígitos).
-  - `EcheqCreationStrategy`: valida CMC7 bien formado y genera el IDECHEQ.
+  - `EcheqCreationStrategy`: verifica cuenta (existe y activa), titularidad
+    (librador = titular) y moneda; reserva el número de la primera chequera
+    vigente con lugar y deriva IDECHEQ (11 letras) + CMC7 (30 dígitos).
 - Ambas estrategias implementan una interfaz común `ICrearInstrumentoStrategy`.
+
+### RF-01b — Cuentas y e-chequeras (Fase B)
+- `POST /api/v1/cuentas` crea una **cuenta corriente** emisora (CBU 22 dígitos
+  con verificadores, CUIT titular, moneda). Idempotente.
+- `GET /api/v1/cuentas?cuit=` lista las cuentas activas del titular.
+- `GET /api/v1/cuentas/{cbu}` obtiene una cuenta.
+- `POST /api/v1/cuentas/{cbu}/chequeras` solicita una **e-chequera** nueva
+  (50 números, vigente de inmediato — el simulador acelera las 24h reales;
+  reintentar con la misma key no duplica). Idempotente.
+- `GET /api/v1/cuentas/{cbu}/chequeras` lista las chequeras con sus disponibles.
+- `GET /api/v1/cuentas/titulares?tipoDoc=&numero=` es el padrón simulado
+  ("lupa"): valida el documento y devuelve el nombre si el titular tiene
+  cuenta (`bancarizado`). Divergencia documentada: el simulador **no bloquea**
+  beneficiarios no bancarizados (el banco real lo exige); el nombre igual es
+  obligatorio al emitir.
+- Sin chequera con lugar al emitir → `409` ("solicite una chequera nueva").
 
 ### RF-02 — Idempotencia en creación
 - Header **obligatorio** `Idempotency-Key` (GUID) en ambos POST.
@@ -51,7 +69,10 @@ la fuente de verdad simulada de los instrumentos negociables.
 
 ### RF-03 — Consulta por CUIT/CUIL, separada por tipo, paginada
 - `GET /api/v1/cheques?cuit={cuit}&page=1&pageSize=10`
-- `GET /api/v1/echeqs?cuit={cuit}&page=1&pageSize=10`
+- `GET /api/v1/echeqs?cuit={cuit}&page=1&pageSize=10` más filtros opcionales
+  (Fase B6): `cbu`, `estado`, `desdeEmision`, `hastaEmision`,
+  `desdeVencimiento`, `hastaVencimiento`, `numeroCheque`. Los rangos por eje no
+  pueden superar 360 días.
 - El `cuit` filtra por librador **o** beneficiario (ambos extremos consultan).
 - `page` es 1-based; `pageSize` default 10, máximo 100.
 - Jamás se devuelven ambos tipos en un mismo endpoint.
@@ -92,8 +113,9 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 
 ### RF-09 — Aceptación y repudio del echeq (solo echeqs)
 - El echeq nace en `Pendiente`; el beneficiario lo acepta o repudia:
-  `POST /api/v1/echeqs/{idecheq}/aceptacion` con `{ "aceptada": true/false }`.
-- Aceptar → `Emitido` (entra en circulación); repudiar → `Repudiado` (terminal).
+  `POST /api/v1/echeqs/{idecheq}/aceptacion` con `{ "aceptada": true/false, "motivo?" }`.
+- Aceptar → `Emitido` (entra en circulación, sin motivo); repudiar → `Repudiado`
+  (terminal, **exige motivo** de hasta 280 caracteres, se guarda en el echeq).
 - Desde `Pendiente` también se puede `Anular` (el librador lo anula si no fue aceptado).
 - Aceptar/repudiar algo no pendiente → `422`; inexistente → `404`.
 
@@ -110,10 +132,11 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 - Tope de 100 endosos no anulados → `409`.
 
 ### RF-11 — Custodia, rescate y débito automático (solo echeqs)
-- `EnCustodia` vía `PATCH /api/v1/echeqs/{idecheq}/estado` (`Emitido ⇄ EnCustodia`).
-- En custodia no se puede endosar ni pasar a otro estado salvo rescate o depósito.
+- `EnCustodia` vía `PATCH /api/v1/echeqs/{idecheq}/estado` (`Emitido ⇄ EnCustodia`, más `Emitido/EnCustodia → Caducado`).
+- En custodia no se puede endosar ni pasar a otro estado salvo rescate, depósito o caducidad.
 - Un worker (cada 5 minutos) deposita automáticamente los echeqs en custodia
-  vencidos (`EnCustodia → Depositado`); nunca tumba el host (errores logueados).
+  vencidos dentro de la ventana de presentación (`EnCustodia → Depositado`) y
+  caduca los que la superaron (`EnCustodia → Caducado`); nunca tumba el host (errores logueados).
 - `DELETE` de la custodia no existe: salir es `Rescatar` (vuelve a `Emitido`).
 
 ### RF-12 — Pedidos de devolución del echeq (solo echeqs)
@@ -126,6 +149,24 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
   posteriores a su posición.
 - `DELETE /api/v1/echeqs/{idecheq}/devoluciones/{numero}` anula un pedido solicitado.
 - `GET /api/v1/echeqs/{idecheq}/devoluciones` lista los pedidos para trazabilidad.
+
+### RF-13 — Cesiones del echeq "no a la orden" (solo echeqs, Fase D1)
+- `POST /api/v1/echeqs/{idecheq}/cesiones` con `{ "cuitCesionario", "domicilioCesionario" }`:
+  el tenedor actual cede a un tercero bancarizado (solo en `Emitido` y con
+  carácter `NoAlaOrden` → `422` si es `AlaOrden`; sin otra cesión pendiente → `409`).
+- `POST /api/v1/echeqs/{idecheq}/cesiones/{numero}/resolucion` con
+  `{ "aceptada", "cuitResolutor" }`: solo el cesionario resuelve. Al aceptar,
+  la tenencia pasa al cesionario.
+- `DELETE /api/v1/echeqs/{idecheq}/cesiones/{numero}` anula una cesión solicitada.
+- `GET /api/v1/echeqs/{idecheq}/cesiones` lista las cesiones para trazabilidad.
+- Tope de 10 cesiones no anuladas → `409`.
+
+### RF-14 — Certificado para acciones civiles (solo echeqs rechazados, Fase D3)
+- `GET /api/v1/echeqs/{idecheq}/certificado` devuelve el CUD (SHA-256
+  determinista de los datos), el código de visualización (primeros 12) y los
+  datos del rechazo. Solo en `Rechazado` (→ `422` si no); inexistente → `404`.
+- No se persiste (se deriva como el desglose). Habilita el reclamo judicial y
+  es la base documental de la contragarantía en el descuento.
 
 ## 4. Requisitos no funcionales
 
@@ -172,14 +213,38 @@ Emitido ──► Depositado ──► Compensado ──► Pagado
 |---|---|---|
 | Id | Guid | PK interna, no expuesta en la API. |
 | IdEcheq | string(11) | Alfabético **generado por el simulador** al crear (11 letras mayúsculas). **Único.** Clave de búsqueda. |
-| Cmc7 | string(30) | CMC7 completo del echeq (mismo formato que el físico). **Único.** Se expone con su desglose derivado. |
+| CbuEmisor | string(22) | CBU de la cuenta de débito. El librador debe ser su titular y la moneda debe coincidir. |
+| Caracter | enum | `AlaOrden` (endosable) / `NoAlaOrden` (solo cesión, Fase D). Todos son cruzados. |
+| TipoDocBeneficiario | enum | `CUIT` / `CUIL` / `CDI` (11 dígitos con verificador). |
+| NombreLibrador / NombreBeneficiario | string(120) | Razón social o nombre y apellido (validados por la "lupa" en el front). |
+| Concepto | string(60)? | Opcional (texto libre; en el banco real es lista desplegable). |
+| Motivo | string(280)? | Opcional, razón de la emisión. |
+| Referencia | string(60)? | Opcional, referencia libre (ej. `FAC-123`). |
+| EmailNotificacion | string(160)? | Opcional, aviso al beneficiario. |
+| NumeroChequera / NumeroCheque | int | Chequera (secuencial por cuenta) y número reservado (1-50). Únicos junto al CBU. |
+| Cmc7 | string(30) | **Derivado** de CBU + número: banco(3) + sucursal(4) + `2077` + número(8) + últimos 11 de la cuenta. **Único.** Se expone con su desglose derivado. |
 | CuitLibrador / CuitBeneficiario | string(11) | CUIT/CUIL válido. |
 | Monto / Moneda / FechaEmision / FechaDiferimiento / FechaVencimiento | — | Igual que cheque físico. |
 | Estado / MotivoRechazo / Auditoría | — | Igual que cheque físico. |
 | CantidadEndosos | int | Default 0 (informativo en v1). |
 
+### 5.2b Cuenta y Chequera (Fase B)
+| Entidad | Campo | Tipo | Reglas |
+|---|---|---|---|
+| Cuenta | Cbu | string(22) | Dígitos con verificadores (entidad 3 + sucursal 4 + cuenta 13). **Único.** Clave de búsqueda. Banco/sucursal/cuenta se derivan, no se persisten. |
+| Cuenta | CuitTitular | string(11) | CUIT/CUIL válido. Índice por titular. |
+| Cuenta | NombreTitular | string(120) | Razón social del titular (la "lupa" la devuelve). |
+| Cuenta | Moneda | string(1) | `P` o `D`. El echeq debe emitirse en la moneda de la cuenta. |
+| Chequera | CuentaId | Guid | FK a la cuenta (sin navegación EF, como endosos/devoluciones). |
+| Chequera | Numero | int | Secuencial por cuenta (1-based). Único junto a CuentaId. |
+| Chequera | ProximoNumero | int | Próximo a reservar (1-51; 51 = agotada). 50 números por chequera. |
+| Chequera | Estado | enum | `Vigente, Agotada`. |
+
+> La e-chequera real se habilita a las 24h; el simulador la habilita de
+> inmediato y lo documenta en `FechaHabilitacion`.
+
 ### 5.3 Estados (dominio compartido)
-`Emitido, Depositado, Compensado, Rechazado, Anulado, Pagado` más los exclusivos
+`Emitido, Depositado, Compensado, Rechazado, Anulado, Pagado, Caducado` más los exclusivos
 de echeq (Fase A): `Pendiente` (nace así, espera aceptación), `Repudiado`
 (terminal, el beneficiario no lo aceptó) y `EnCustodia` (en poder del banco).
 
@@ -190,9 +255,14 @@ Pendiente ──► Emitido ──► Depositado ──► Compensado ──► 
    │  │          ├──► EnCustodia ⇄ Emitido
    │  │          │         │
    │  │          │         └──► (worker) Depositado al vencer
+   │  │          ├──► Caducado (plazo de presentación vencido, 30 días)
    │  └──► Anulado
    └──► Repudiado
 ```
+
+Reglas de fecha reales (Fase B5): tenor emisión→vencimiento ≤ 360 días;
+presentación al cobro dentro de los 30 días del vencimiento (después el
+depósito se rechaza con 422 y la custodia pasa a `Caducado` por el worker).
 
 ### 5.4 Motivos de rechazo (códigos de rechazo, subconjunto real)
 | Código | Motivo |
@@ -214,6 +284,11 @@ Pendiente ──► Emitido ──► Depositado ──► Compensado ──► 
 | cheques_fisicos | `cmc7` | Único. |
 | echeqs | `id_echeq` | Único. |
 | echeqs | `cmc7` | Único. |
+| echeqs | `(cbu_emisor, numero_chequera, numero_cheque)` | Único (trazabilidad chequera). |
+| cuentas | `cbu` | Único. |
+| cuentas | `cuit_titular, activa` | Búsqueda por titular. |
+| chequeras | `(cuenta_id, numero)` | Único (secuencial por cuenta). |
+| chequeras | `(cuenta_id, estado, proximo_numero)` | Chequera con lugar. |
 | echeqs | `cuit_librador, activo` / `cuit_beneficiario, activo` | Parciales `WHERE activo = true`. |
 | idempotency_keys | `key` | Único. |
 | endosos | `echeq_id, orden` | Único (orden secuencial por echeq). |
@@ -223,7 +298,7 @@ Pendiente ──► Emitido ──► Depositado ──► Compensado ──► 
   no consumen el índice).
 - `COUNT(*)` del paginado se resuelve con cache (ver sección 7), no por query en cada página.
 
-### 5.6 Endosos y devoluciones (Fase A, solo echeqs)
+### 5.6 Endosos, devoluciones y cesiones (Fase A + D1, solo echeqs)
 
 | Entidad | Campo | Tipo | Reglas |
 |---|---|---|---|
@@ -236,6 +311,11 @@ Pendiente ──► Emitido ──► Depositado ──► Compensado ──► 
 | Devolucion | CuitSolicitante | string(11) | CUIT/CUIL válido; integrante de la cadena distinto del tenedor. |
 | Devolucion | Motivo | string(280)? | Opcional. |
 | Devolucion | Estado | enum | `Solicitada, Aceptada, Rechazada, Anulada` (ver RF-12). |
+| Cesion | EcheqId | Guid | FK al echeq. |
+| Cesion | Numero | int | Secuencial por echeq (1-based). Único junto a EcheqId. |
+| Cesion | CuitCedente / CuitCesionario | string(11) | CUIT/CUIL válido; distintos entre sí. El cedente es siempre el tenedor actual. |
+| Cesion | DomicilioCesionario | string(200) | Obligatorio. |
+| Cesion | Estado | enum | `Solicitada, Aceptada, Rechazada, Anulada` (ver RF-13). Tope 10 no anuladas. |
 
 ## 6. Contrato de API (DTOs)
 
@@ -261,7 +341,14 @@ Pendiente ──► Emitido ──► Depositado ──► Compensado ──► 
 ### CrearEcheqRequest
 ```json
 {
-  "cmc7": "011000114250000123400001234567",
+  "cbuEmisor": "0110001300000000000017",
+  "caracter": "AlaOrden",
+  "tipoDocBeneficiario": "CUIT",
+  "nombreLibrador": "Alfa S.R.L.",
+  "nombreBeneficiario": "Beta S.A.",
+  "concepto": "Pago a proveedores",
+  "referencia": "FAC-123",
+  "emailNotificacion": "cobros@demo.local",
   "cuitLibrador": "20123456789",
   "cuitBeneficiario": "30712345678",
   "monto": 250000.00,
@@ -271,8 +358,21 @@ Pendiente ──► Emitido ──► Depositado ──► Compensado ──► 
 }
 ```
 
-> El IDECHEQ (11 letras mayúsculas) **lo genera el simulador** al crear el echeq; no viene en el request.
-> La respuesta incluye el IDECHEQ asignado junto al CMC7 y su desglose.
+> El IDECHEQ (11 letras mayúsculas) y el CMC7 (30 dígitos, derivado del CBU +
+> número de chequera) **los genera el simulador** al crear el echeq; no vienen
+> en el request. La cuenta debe tener chequera vigente con lugar (si no → 409).
+> La respuesta incluye ambos identificadores, el CBU, la chequera/número y el
+> desglose del CMC7.
+
+### CrearCuentaRequest
+```json
+{
+  "cbu": "0110001300000000000017",
+  "cuitTitular": "20123456789",
+  "nombreTitular": "Alfa S.R.L.",
+  "moneda": "P"
+}
+```
 
 ### Respuesta (ChequeResponse / EcheqResponse)
 ```json

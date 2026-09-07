@@ -15,6 +15,7 @@ const APARIENCIA: Record<
   Anulado: { variante: 'outline' },
   Repudiado: { variante: 'destructive', clase: 'bg-transparent' },
   EnCustodia: { variante: 'default', clase: 'bg-amber-600' },
+  Caducado: { variante: 'outline', clase: 'text-muted-foreground' },
 };
 
 export default function EstadoBadge({ estado }: { estado: EstadoInstrumento }) {

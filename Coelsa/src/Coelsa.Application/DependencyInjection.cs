@@ -27,9 +27,18 @@ public static class DependencyInjection
         services.AddScoped<EliminarChequeHandler>();
         services.AddScoped<EliminarEcheqHandler>();
 
+        // Fase B: cuentas corrientes emisoras y e-chequeras (RFC-005)
+        services.AddScoped<CrearCuentaHandler>();
+        services.AddScoped<ListarCuentasHandler>();
+        services.AddScoped<ObtenerCuentaHandler>();
+        services.AddScoped<SolicitarChequeraHandler>();
+        services.AddScoped<ListarChequerasHandler>();
+        services.AddScoped<ObtenerTitularHandler>();
+
         // Fase A: aceptación, endosos, devoluciones y débito de custodias vencidas
         services.AddScoped<AceptarEcheqHandler>();
-        services.AddScoped<ProponerEndosoHandler>();
+        // Fase D3: certificado para acciones civiles
+        services.AddScoped<ObtenerCertificadoHandler>();        services.AddScoped<ProponerEndosoHandler>();
         services.AddScoped<ResolverEndosoHandler>();
         services.AddScoped<AnularEndosoHandler>();
         services.AddScoped<ListarEndososHandler>();
@@ -38,6 +47,12 @@ public static class DependencyInjection
         services.AddScoped<AnularDevolucionHandler>();
         services.AddScoped<ListarDevolucionesHandler>();
         services.AddScoped<DepositarCustodiasVencidasHandler>();
+
+        // Fase D1: cesiones de echeqs "no a la orden"
+        services.AddScoped<SolicitarCesionHandler>();
+        services.AddScoped<ResolverCesionHandler>();
+        services.AddScoped<AnularCesionHandler>();
+        services.AddScoped<ListarCesionesHandler>();
 
         return services;
     }

@@ -11,8 +11,11 @@ public class CoelsaDbContext(DbContextOptions<CoelsaDbContext> options) : DbCont
 {
     public DbSet<ChequeFisico> ChequesFisicos => Set<ChequeFisico>();
     public DbSet<Echeq> Echeqs => Set<Echeq>();
+    public DbSet<Cuenta> Cuentas => Set<Cuenta>();
+    public DbSet<Chequera> Chequeras => Set<Chequera>();
     public DbSet<Endoso> Endosos => Set<Endoso>();
     public DbSet<Devolucion> Devoluciones => Set<Devolucion>();
+    public DbSet<Cesion> Cesiones => Set<Cesion>();
     public DbSet<EntradaIdempotencia> IdempotenciaKeys => Set<EntradaIdempotencia>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -42,6 +45,12 @@ public class CoelsaDbContext(DbContextOptions<CoelsaDbContext> options) : DbCont
                         : "Ya existe un cheque físico con ese CMC7.",
                 var c when c.Contains("IdEcheq", StringComparison.OrdinalIgnoreCase)
                     => "Ya existe un echeq con ese IDECHEQ.",
+                var c when c.Contains("cbu_chequera_numero", StringComparison.OrdinalIgnoreCase)
+                    => "Ya existe un echeq con ese número de chequera.",
+                var c when c.Contains("Cbu", StringComparison.OrdinalIgnoreCase)
+                    => "Ya existe una cuenta con ese CBU.",
+                var c when c.Contains("CuentaId", StringComparison.OrdinalIgnoreCase)
+                    => "Ya existe esa chequera para la cuenta.",
                 var c when c.Contains("Idempotencia", StringComparison.OrdinalIgnoreCase)
                     => "La Idempotency-Key ya fue registrada por otra request concurrente.",
                 _ => "Se detectó un conflicto de unicidad al guardar los datos."

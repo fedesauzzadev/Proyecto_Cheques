@@ -14,14 +14,15 @@ public static class TransicionesEstado
         new Dictionary<EstadoInstrumento, EstadoInstrumento[]>
         {
             [EstadoInstrumento.Pendiente] = [EstadoInstrumento.Emitido, EstadoInstrumento.Repudiado, EstadoInstrumento.Anulado],
-            [EstadoInstrumento.Emitido] = [EstadoInstrumento.Depositado, EstadoInstrumento.Anulado, EstadoInstrumento.EnCustodia],
+            [EstadoInstrumento.Emitido] = [EstadoInstrumento.Depositado, EstadoInstrumento.Anulado, EstadoInstrumento.EnCustodia, EstadoInstrumento.Caducado],
             [EstadoInstrumento.Depositado] = [EstadoInstrumento.Compensado, EstadoInstrumento.Rechazado],
             [EstadoInstrumento.Compensado] = [EstadoInstrumento.Pagado],
-            [EstadoInstrumento.EnCustodia] = [EstadoInstrumento.Emitido, EstadoInstrumento.Depositado],
+            [EstadoInstrumento.EnCustodia] = [EstadoInstrumento.Emitido, EstadoInstrumento.Depositado, EstadoInstrumento.Caducado],
             [EstadoInstrumento.Rechazado] = [],
             [EstadoInstrumento.Anulado] = [],
             [EstadoInstrumento.Pagado] = [],
-            [EstadoInstrumento.Repudiado] = []
+            [EstadoInstrumento.Repudiado] = [],
+            [EstadoInstrumento.Caducado] = []
         };
 
     public static bool EsValida(EstadoInstrumento desde, EstadoInstrumento hacia)

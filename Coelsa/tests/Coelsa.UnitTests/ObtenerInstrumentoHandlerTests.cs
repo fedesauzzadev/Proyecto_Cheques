@@ -15,9 +15,7 @@ public class ObtenerInstrumentoHandlerTests
     public async Task ObtenerEcheq_ConIdEcheqDe11Letras_Devuelve()
     {
         var repositorio = new RepositorioEcheqsFake();
-        var echeq = Echeq.Crear(
-            "ABCDEFGHIJK", "011000114250000123400001234567", Cuit("2012345678"), Cuit("2787654321"),
-            250_000m, Moneda.Dolares, Hoy, null, Hoy.AddDays(30), Hoy);
+        var echeq = FabricaEcheqs.Crear();
         repositorio.Agregar(echeq);
         var handler = new ObtenerEcheqHandler(repositorio);
 

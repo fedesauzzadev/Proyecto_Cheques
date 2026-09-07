@@ -81,6 +81,36 @@ describe('apiInstrumentos', () => {
     expect(resultado.respuesta.identificador).toBe(cheque.identificador);
   });
 
+  it('listarEcheqs propaga los filtros B6 en el query string', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({ items: [], page: 1, pageSize: 10, totalCount: 0, totalPages: 0 }),
+        { status: 200 },
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await apiInstrumentos.listarEcheqs({
+      cuit: '20123456786',
+      page: 1,
+      pageSize: 10,
+      filtrosEcheq: {
+        cbu: '0110001300000000000017',
+        estado: 'Emitido',
+        desdeEmision: '2026-09-01',
+        numeroCheque: 7,
+      },
+    });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toContain('/api/v1/echeqs?');
+    expect(url).toContain('cbu=0110001300000000000017');
+    expect(url).toContain('estado=Emitido');
+    expect(url).toContain('desdeEmision=2026-09-01');
+    expect(url).toContain('numeroCheque=7');
+    expect(url).not.toContain('hastaEmision');
+  });
+
   it('cambiarEstadoCheque hace PATCH al subrecurso /estado', async () => {
     const fetchMock = vi
       .fn()

@@ -63,8 +63,25 @@ describe('useAceptarEcheq (RF-F10)', () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(aceptar).toHaveBeenCalledWith('ABCDEFGHIJK', true);
+    expect(aceptar).toHaveBeenCalledWith('ABCDEFGHIJK', true, undefined);
     expect(result.current.data?.estado).toBe('Emitido');
+  });
+
+  it('repudia con motivo e invalida el tipo (D2)', async () => {
+    const aceptar = vi
+      .fn()
+      .mockResolvedValue({ identificador: 'ABCDEFGHIJK', estado: 'Repudiado' });
+    const puerto: IPuertoAceptacion = { aceptar };
+    const { Envoltorio } = crearEnvoltorio();
+
+    const { result } = renderHook(() => useAceptarEcheq(puerto), { wrapper: Envoltorio });
+
+    await act(async () => {
+      result.current.mutate({ idecheq: 'ABCDEFGHIJK', aceptada: false, motivo: 'No la pedí' });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(aceptar).toHaveBeenCalledWith('ABCDEFGHIJK', false, 'No la pedí');
   });
 });
 

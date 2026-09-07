@@ -47,6 +47,10 @@ sección 2 del SPEC del backend y no se repiten acá.
   (`placeholderData: keepPreviousData`).
 - El estado vacío (sin datos para el CUIT) tiene mensaje y call-to-action a
   creación.
+- En la pestaña Echeqs hay filtros opcionales (Fase B6, espejo de RF-03):
+  CBU emisor, estado, rangos de emisión/vencimiento (tope 360 días por eje) y
+  número de cheque. Se validan client-side y viajan en el query string; forman
+  parte de la clave de caché.
 
 ### RF-F02 — Detalle individual por identificador de negocio
 
@@ -54,6 +58,9 @@ sección 2 del SPEC del backend y no se repiten acá.
   o **IDECHEQ**.
 - Para cheques físicos se muestra el **desglose del CMC7** (banco, sucursal,
   código postal, número de cheque, cuenta) parseado en el dominio del front.
+- El detalle del echeq es su **comprobante** (Fase B7): CBU, chequera/número,
+  carácter, nombres, gestión y CMC7 con desglose, más botón de impresión
+  (`window.print`, oculto al imprimir).
 - `404` → pantalla/mensaje "instrumento inexistente" con volver al listado.
 
 ### RF-F03 — Creación de instrumentos (con Strategy)
@@ -63,9 +70,18 @@ sección 2 del SPEC del backend y no se repiten acá.
   request builder viven en `estrategiaChequeFisico.ts` /
   `estrategiaEcheq.ts` detrás de una interfaz común.
 - Validación client-side espejo del backend: CUIT módulo 11, CMC7 de 30
-  dígitos (físicos y echeqs), monto > 0, `fechaEmision ≤ hoy+1`,
-  `fechaDiferimiento ≥ fechaEmision` si viene, `fechaVencimiento` obligatoria y
-  posterior a emisión (y a diferimiento si viene).
+  dígitos (cheques físicos), CBU de 22 dígitos con verificadores (cuenta de
+  débito del echeq), carácter A la orden / No a la orden, tipo de documento
+  CUIT/CUIL/CDI + nombres de librador/beneficiario (obligatorios), gestión
+  opcional (concepto ≤60, motivo ≤280, referencia ≤60, email válido), monto > 0,
+  `fechaEmision ≤ hoy+1`, `fechaDiferimiento ≥ fechaEmision` si viene,
+  `fechaVencimiento` obligatoria, posterior a emisión (y a diferimiento si viene)
+  y con tenor ≤ 360 días.
+- El formulario de echeq trae la **lupa del beneficiario**: valida el documento
+  contra `GET /cuentas/titulares` y, si está bancarizado, autocompleta el nombre.
+- La página **Cuentas** (`/cuentas`, espejo de RF-01b) permite buscar cuentas
+  por CUIT titular, crear cuentas y solicitar e-chequeras (50 números); el
+  formulario de echeq exige el CBU de una cuenta con chequera vigente.
 - Los errores del server (400/409) se muestran junto al campo
   correspondiente cuando el detalle lo permite, o como error general.
 
@@ -76,7 +92,7 @@ sección 2 del SPEC del backend y no se repiten acá.
 - Los reintentos automáticos/manuales del mismo intento reusan el GUID.
 - Si la respuesta viene con `Idempotent-Replay: true`, se informa
   explícitamente ("instrumento ya existía para este intento").
-- `409 Conflict` (CMC7/CUD duplicado con otra key) → mensaje diferenciado.
+- `409 Conflict` (CBU duplicado, chequera sin números, CMC7 duplicado con otra key) → mensaje diferenciado.
 
 ### RF-F05 — Cambio de estado gobernado por la máquina de estados
 
@@ -123,21 +139,36 @@ sección 2 del SPEC del backend y no se repiten acá.
 
 - Un echeq `Pendiente` muestra la sección de aceptación en vez de acciones de
   estado: **Aceptar** (pasa a `Emitido`) o **Repudiar** (terminal).
+- El repudio es en dos pasos con **motivo obligatorio** (≤280) que el backend
+  guarda y devuelve (`motivoRepudio`).
 
 ### RF-F11 — Cadena de endosos (solo echeqs, espejo de RF-10)
 
 - Timeline con orden, endosante → endosatario y badge por estado del endoso.
-- Formulario para proponer (CUIT validado módulo 11, solo en `Emitido`).
+- Formulario para proponer (CUIT validado módulo 11, solo en `Emitido` **y con
+  carácter 'A la orden'**); un 'No a la orden' informa que va por cesión.
 - Cada propuesto se admite/repudia indicando con qué CUIT se actúa (debe ser
   el endosatario) o se anula.
 
 ### RF-F12 — Pedidos de devolución (solo echeqs, espejo de RF-12)
-
 - Formulario de solicitud (CUIT de la cadena + motivo opcional, solo en `Emitido`).
 - Cada pedido solicitado se acepta/rechaza con el CUIT del tenedor (prellenado)
   o se anula.
 - La custodia se opera desde Acciones (gobernada por la máquina de estados);
   en `EnCustodia` se muestra el aviso de débito automático al vencer.
+
+### RF-F13 — Cesiones (solo echeqs "no a la orden", espejo de RF-13)
+
+- La tarjeta de cesiones solo aparece con carácter 'No a la orden'.
+- Formulario de solicitud (CUIT del cesionario + domicilio obligatorio, solo en
+  `Emitido`); cada solicitada se acepta/rechaza con el CUIT del cesionario o se
+  anula. Al aceptar, la tenencia pasa al cesionario.
+
+### RF-F14 — Certificado para acciones civiles (solo echeqs rechazados, espejo de RF-14)
+
+- La tarjeta solo aparece en estado `Rechazado`: consulta
+  `GET /echeqs/{idecheq}/certificado` y muestra el CUD (64 hex), el código de
+  visualización, el motivo del rechazo, monto y partes. Botón para copiar el CUD.
 
 ## 4. Requisitos no funcionales
 
@@ -168,7 +199,7 @@ type MotivoRechazo = 11 | 12 | 21 | 25;   // FaltaDeFondos, CuentaInexistente, D
 type Moneda = 'P' | 'D';
 
 interface ChequeResponse  { identificador: string; /* CMC7 */ tipo: 'ChequeFisico'; desgloseCmc7: ...; ... }
-interface EcheqResponse   { identificador: string; /* IDECHEQ: 11 letras */ tipo: 'Echeq'; cmc7: string; desgloseCmc7: ...; ... }
+interface EcheqResponse   { identificador: string; /* IDECHEQ: 11 letras */ tipo: 'Echeq'; cbuEmisor: string; numeroChequera: number; numeroCheque: number; caracter: Caracter; modo: 'Cruzado'; tipoDocBeneficiario: TipoDocumento; nombreLibrador: string; nombreBeneficiario: string; concepto/motivo/referencia/email: string | null; cmc7: string; desgloseCmc7: ...; ... }
 interface PagedResponse<T>{ items: T[]; page: number; pageSize: number; totalCount: number; totalPages: number; }
 ```
 
@@ -177,6 +208,8 @@ Módulos puros de dominio (sin dependencias, testeados con Vitest):
 | Módulo             | Responsabilidad                                              | Espejo en el backend                 |
 | ------------------ | ------------------------------------------------------------ | ------------------------------------ |
 | `validadorCuit.ts` | Validación módulo 11 (mismo algoritmo y casos de test).      | `ValidadorCuit.cs`                   |
+| `cbu.ts`           | Validación CBU 22 dígitos con verificadores BCRA.            | `ValidadorCbu.cs`                    |
+| `documento.ts`     | Tipo CUIT/CUIL/CDI + nombres (hasta 120).                    | `ValidadorDocumento.cs`              |
 | `desgloseCmc7.ts`  | Parse de banco/sucursal/CP/número/cuenta desde 30 dígitos.   | Desglose derivado en `Mapeadores.cs` |
 | `idecheq.ts`       | Formato del IDECHEQ: 11 letras mayúsculas.                   | Validación en `Echeq.Crear`          |
 | `transiciones.ts`  | Máquina de estados: transiciones válidas y si exigen motivo. | `TransicionesEstado.cs`              |
@@ -214,9 +247,10 @@ Front_Coelsa/
     domain/                   # Tipos, enums, validadorCuit, desgloseCmc7,
                               # transiciones, estrategias (puro, sin dependencias)
     application/
-      puertos.ts              # Interfaces: IPuertoInstrumentos, IPuertoSalud
+      puertos.ts              # Interfaces: IPuertoInstrumentos, IPuertoCuentas, IPuertoSalud
       hooks/                  # useListarInstrumentos, useObtenerInstrumento,
                               # useCrearInstrumento, useCambiarEstado, useBajaLogica,
+                              # useCuentas/useChequeras/useCrearCuenta/useSolicitarChequera,
                               # useSaludBackend (TanStack Query)
     infrastructure/
       clienteHttp.ts          # fetch + timeout + ProblemDetails + 429/Retry-After
@@ -226,6 +260,7 @@ Front_Coelsa/
       layout/                 # Header, nav, badge de salud, toast provider
       features/
         consulta/             # Pestañas cheques/echeqs + tabla + paginación
+        cuentas/              # Cuentas por titular + crear + solicitar chequeras (Fase B)
         detalle/              # Vista individual + acciones de estado/baja
         creacion/             # Formularios con strategy + idempotencia
       ui/                     # Componentes shadcn/ui + wrappers propios

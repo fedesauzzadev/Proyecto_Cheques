@@ -9,6 +9,7 @@ public interface IInstrumento
     string CuitLibrador { get; }
     string CuitBeneficiario { get; }
     EstadoInstrumento Estado { get; }
+    DateOnly FechaVencimiento { get; }
     bool Activo { get; }
 
     /// <summary>Baja lógica del instrumento.</summary>

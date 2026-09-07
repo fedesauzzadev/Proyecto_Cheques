@@ -24,7 +24,12 @@ public class EcheqsController(
     SolicitarDevolucionHandler solicitarDevolucionHandler,
     ResolverDevolucionHandler resolverDevolucionHandler,
     AnularDevolucionHandler anularDevolucionHandler,
-    ListarDevolucionesHandler listarDevolucionesHandler) : ControllerBase
+    ListarDevolucionesHandler listarDevolucionesHandler,
+    SolicitarCesionHandler solicitarCesionHandler,
+    ResolverCesionHandler resolverCesionHandler,
+    AnularCesionHandler anularCesionHandler,
+    ListarCesionesHandler listarCesionesHandler,
+    ObtenerCertificadoHandler certificadoHandler) : ControllerBase
 {
     /// <summary>Crea un echeq (idempotente por header Idempotency-Key); el simulador asigna el IDECHEQ.</summary>
     [HttpPost]
@@ -42,16 +47,25 @@ public class EcheqsController(
             : CreatedAtAction(nameof(Obtener), new { idecheq = resultado.Respuesta.Identificador }, resultado.Respuesta);
     }
 
-    /// <summary>Lista echeqs por CUIT/CUIL (librador o beneficiario), paginado y cacheado.</summary>
+    /// <summary>Lista echeqs por CUIT/CUIL (librador o beneficiario) con filtros opcionales, paginado y cacheado.</summary>
     [HttpGet]
     [EnableRateLimiting("consultas")]
     public async Task<ActionResult<PagedResponse<EcheqResponse>>> Listar(
         [FromQuery] string? cuit,
         [FromQuery] int? page,
         [FromQuery] int? pageSize,
+        [FromQuery] string? cbu,
+        [FromQuery] string? estado,
+        [FromQuery] DateOnly? desdeEmision,
+        [FromQuery] DateOnly? hastaEmision,
+        [FromQuery] DateOnly? desdeVencimiento,
+        [FromQuery] DateOnly? hastaVencimiento,
+        [FromQuery] int? numeroCheque,
         CancellationToken ct)
     {
-        return Ok(await listarHandler.Ejecutar(cuit, page, pageSize, ct));
+        var filtros = new FiltrosEcheq(
+            cbu, estado, desdeEmision, hastaEmision, desdeVencimiento, hastaVencimiento, numeroCheque);
+        return Ok(await listarHandler.Ejecutar(cuit, filtros, page, pageSize, ct));
     }
 
     /// <summary>Obtiene un echeq por su IDECHEQ.</summary>
@@ -173,5 +187,57 @@ public class EcheqsController(
     {
         await anularDevolucionHandler.Ejecutar(idecheq, numero, ct);
         return NoContent();
+    }
+
+    /// <summary>Solicita la cesión del echeq "no a la orden" a un tercero (el tenedor cede).</summary>
+    [HttpPost("{idecheq}/cesiones")]
+    [EnableRateLimiting("creaciones")]
+    public async Task<ActionResult<CesionResponse>> SolicitarCesion(string idecheq, [FromBody] SolicitarCesionRequest request, CancellationToken ct)
+    {
+        var respuesta = await solicitarCesionHandler.Ejecutar(idecheq, request, ct);
+        return CreatedAtAction(nameof(ObtenerCesion), new { idecheq, numero = respuesta.Numero }, respuesta);
+    }
+
+    /// <summary>Cesiones del echeq para trazabilidad.</summary>
+    [HttpGet("{idecheq}/cesiones")]
+    [EnableRateLimiting("consultas")]
+    public async Task<ActionResult<IReadOnlyList<CesionResponse>>> ListarCesiones(string idecheq, CancellationToken ct)
+    {
+        return Ok(await listarCesionesHandler.Ejecutar(idecheq, ct));
+    }
+
+    /// <summary>Obtiene una cesión por su número.</summary>
+    [HttpGet("{idecheq}/cesiones/{numero:int}")]
+    [EnableRateLimiting("consultas")]
+    public async Task<ActionResult<CesionResponse>> ObtenerCesion(string idecheq, int numero, CancellationToken ct)
+    {
+        var lista = await listarCesionesHandler.Ejecutar(idecheq, ct);
+        var cesion = lista.FirstOrDefault(c => c.Numero == numero);
+        return cesion is null ? NotFound() : Ok(cesion);
+    }
+
+    /// <summary>Aceptación o rechazo de la cesión por el cesionario.</summary>
+    [HttpPost("{idecheq}/cesiones/{numero:int}/resolucion")]
+    [EnableRateLimiting("creaciones")]
+    public async Task<ActionResult<CesionResponse>> ResolverCesion(string idecheq, int numero, [FromBody] ResolverCesionRequest request, CancellationToken ct)
+    {
+        return Ok(await resolverCesionHandler.Ejecutar(idecheq, numero, request, ct));
+    }
+
+    /// <summary>Anulación de una cesión solicitada por el cedente.</summary>
+    [HttpDelete("{idecheq}/cesiones/{numero:int}")]
+    [EnableRateLimiting("creaciones")]
+    public async Task<IActionResult> AnularCesion(string idecheq, int numero, CancellationToken ct)
+    {
+        await anularCesionHandler.Ejecutar(idecheq, numero, ct);
+        return NoContent();
+    }
+
+    /// <summary>Certificado para ejercer acciones civiles (solo echeqs rechazados).</summary>
+    [HttpGet("{idecheq}/certificado")]
+    [EnableRateLimiting("consultas")]
+    public async Task<ActionResult<CertificadoResponse>> ObtenerCertificado(string idecheq, CancellationToken ct)
+    {
+        return Ok(await certificadoHandler.Ejecutar(idecheq, ct));
     }
 }

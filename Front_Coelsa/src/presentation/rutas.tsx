@@ -13,6 +13,7 @@ import PaginaNoEncontrada from './layout/PaginaNoEncontrada';
 const PaginaConsulta = lazy(() => import('./features/consulta/PaginaConsulta'));
 const PaginaDetalle = lazy(() => import('./features/detalle/PaginaDetalle'));
 const PaginaCreacion = lazy(() => import('./features/creacion/PaginaCreacion'));
+const PaginaCuentas = lazy(() => import('./features/cuentas/PaginaCuentas'));
 const PaginaContratos = lazy(() => import('./features/contratos/PaginaContratos'));
 
 function conCargaDiferida(pagina: ReactNode) {
@@ -37,6 +38,7 @@ export default function Rutas() {
           element={conCargaDiferida(<PaginaCreacion tipo="ChequeFisico" />)}
         />
         <Route path="nuevo/echeq" element={conCargaDiferida(<PaginaCreacion tipo="Echeq" />)} />
+        <Route path="cuentas" element={conCargaDiferida(<PaginaCuentas />)} />
         <Route path="contratos" element={conCargaDiferida(<PaginaContratos />)} />
         <Route path="*" element={<PaginaNoEncontrada />} />
       </Route>

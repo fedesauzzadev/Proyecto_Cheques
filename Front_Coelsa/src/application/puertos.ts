@@ -3,18 +3,28 @@
 import type {
   CambiarEstadoRequest,
   ChequeResponse,
+  Chequera,
   CrearChequeFisicoRequest,
+  CrearCuentaRequest,
   CrearEcheqRequest,
+  Cuenta,
   Devolucion,
   EcheqResponse,
   Endoso,
+  Cesion,
+  Certificado,
   PagedResponse,
+  TipoDocumento,
+  Titular,
 } from '@/domain/tipos';
+import type { FiltrosEcheq } from '@/domain/filtrosEcheq';
 
 export interface ConsultaPaginada {
   cuit: string;
   page: number;
   pageSize: number;
+  /** Solo echeqs (Fase B6): CBU, estado, rangos y número. */
+  filtrosEcheq?: FiltrosEcheq;
 }
 
 export interface ResultadoCreacion<T> {
@@ -61,9 +71,25 @@ export interface IPuertoSalud {
   consultar(senal?: AbortSignal): Promise<EstadoSalud>;
 }
 
+/** Puerto de cuentas corrientes y e-chequeras (Fase B, espejo del back). */
+export interface IPuertoCuentas {
+  crear(request: CrearCuentaRequest, idempotencyKey: string): Promise<ResultadoCreacion<Cuenta>>;
+  listarPorCuit(cuit: string, senal?: AbortSignal): Promise<Cuenta[]>;
+  obtener(cbu: string, senal?: AbortSignal): Promise<Cuenta>;
+  solicitarChequera(cbu: string, idempotencyKey: string): Promise<ResultadoCreacion<Chequera>>;
+  listarChequeras(cbu: string, senal?: AbortSignal): Promise<Chequera[]>;
+  /** Padrón simulado ("lupa"): valida el documento y devuelve el nombre si tiene cuenta. */
+  buscarTitular(tipoDoc: TipoDocumento, numero: string, senal?: AbortSignal): Promise<Titular>;
+}
+
 /** Puerto de aceptación de echeqs pendientes (RF-F10, espejo de RF-09). */
 export interface IPuertoAceptacion {
-  aceptar(idecheq: string, aceptada: boolean): Promise<EcheqResponse>;
+  aceptar(idecheq: string, aceptada: boolean, motivo?: string | null): Promise<EcheqResponse>;
+}
+
+/** Puerto del certificado para acciones civiles (Fase D3, espejo de RF-14). */
+export interface IPuertoCertificado {
+  obtener(idecheq: string, senal?: AbortSignal): Promise<Certificado>;
 }
 
 /** Puerto de endosos de echeqs (RF-F11, espejo de RF-10). */
@@ -84,5 +110,22 @@ export interface IPuertoDevoluciones {
     aceptada: boolean,
     cuitResolutor: string,
   ): Promise<Devolucion>;
+  anular(idecheq: string, numero: number): Promise<void>;
+}
+
+/** Puerto de cesiones de echeqs "no a la orden" (Fase D1, espejo de RF-13). */
+export interface IPuertoCesiones {
+  listar(idecheq: string, senal?: AbortSignal): Promise<Cesion[]>;
+  solicitar(
+    idecheq: string,
+    cuitCesionario: string,
+    domicilioCesionario: string,
+  ): Promise<Cesion>;
+  resolver(
+    idecheq: string,
+    numero: number,
+    aceptada: boolean,
+    cuitResolutor: string,
+  ): Promise<Cesion>;
   anular(idecheq: string, numero: number): Promise<void>;
 }

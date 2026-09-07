@@ -19,6 +19,8 @@ tags:
     description: Cheques físicos identificados por CMC7 (30 dígitos).
   - name: Echeqs
     description: Cheques electrónicos identificados por IDECHEQ.
+  - name: Cuentas
+    description: Cuentas corrientes emisoras y e-chequeras (Fase B).
   - name: Health
     description: Health checks de infraestructura.
 
@@ -136,11 +138,173 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
+  /api/v1/cuentas:
+    post:
+      tags: [Cuentas]
+      operationId: crearCuenta
+      summary: Crea una cuenta corriente emisora de echeqs (idempotente)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearCuentaRequest'
+      responses:
+        '201':
+          description: Cuenta creada.
+          headers:
+            Idempotent-Replay:
+              $ref: '#/components/headers/IdempotentReplay'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuentaResponse'
+        '200':
+          description: Replay idempotente (misma key + mismo body).
+          headers:
+            Idempotent-Replay:
+              $ref: '#/components/headers/IdempotentReplay'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuentaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    get:
+      tags: [Cuentas]
+      operationId: listarCuentas
+      summary: Lista las cuentas activas de un CUIT/CUIL titular
+      parameters:
+        - $ref: '#/components/parameters/Cuit'
+      responses:
+        '200':
+          description: Cuentas del titular.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CuentaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/cuentas/{cbu}:
+    get:
+      tags: [Cuentas]
+      operationId: obtenerCuenta
+      summary: Obtiene una cuenta por su CBU
+      parameters:
+        - $ref: '#/components/parameters/Cbu'
+      responses:
+        '200':
+          description: Cuenta encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CuentaResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/cuentas/{cbu}/chequeras:
+    get:
+      tags: [Cuentas]
+      operationId: listarChequeras
+      summary: Lista las chequeras de la cuenta, ordenadas por número
+      parameters:
+        - $ref: '#/components/parameters/Cbu'
+      responses:
+        '200':
+          description: Chequeras de la cuenta.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChequeraResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Cuentas]
+      operationId: solicitarChequera
+      summary: Solicita una e-chequera nueva (50 números; reintentar con la misma key no duplica)
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/Cbu'
+      responses:
+        '201':
+          description: Chequera creada y vigente.
+          headers:
+            Idempotent-Replay:
+              $ref: '#/components/headers/IdempotentReplay'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChequeraResponse'
+        '200':
+          description: Replay idempotente (misma key sobre el mismo CBU).
+          headers:
+            Idempotent-Replay:
+              $ref: '#/components/headers/IdempotentReplay'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChequeraResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /api/v1/cuentas/titulares:
+    get:
+      tags: [Cuentas]
+      operationId: obtenerTitular
+      summary: Padrón simulado ("lupa") — valida el documento y devuelve el nombre si tiene cuenta
+      parameters:
+        - name: tipoDoc
+          in: query
+          required: true
+          description: CUIT, CUIL o CDI.
+          schema:
+            type: string
+            enum: [CUIT, CUIL, CDI]
+        - name: numero
+          in: query
+          required: true
+          description: 11 dígitos con verificador.
+          schema:
+            type: string
+            pattern: '^\d{11}$'
+      responses:
+        '200':
+          description: Documento válido; nombre si está bancarizado en el simulador.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TitularResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
   /api/v1/echeqs:
     post:
       tags: [Echeqs]
       operationId: crearEcheq
-      summary: Crea un echeq (idempotente); el simulador asigna el IDECHEQ
+      summary: Crea un echeq (idempotente); el simulador asigna IDECHEQ y CMC7
       parameters:
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
@@ -151,7 +315,7 @@ paths:
               $ref: '#/components/schemas/CrearEcheqRequest'
       responses:
         '201':
-          description: Echeq creado (incluye IDECHEQ asignado).
+          description: Echeq creado (incluye IDECHEQ y CMC7 asignados).
           headers:
             Idempotent-Replay:
               $ref: '#/components/headers/IdempotentReplay'
@@ -177,11 +341,58 @@ paths:
     get:
       tags: [Echeqs]
       operationId: listarEcheqs
-      summary: Lista echeqs por CUIT/CUIL (librador o beneficiario), paginado
+      summary: Lista echeqs por CUIT/CUIL (librador o beneficiario) con filtros opcionales, paginado
       parameters:
         - $ref: '#/components/parameters/Cuit'
         - $ref: '#/components/parameters/Page'
         - $ref: '#/components/parameters/PageSize'
+        - name: cbu
+          in: query
+          required: false
+          description: Filtra por CBU de la cuenta de débito.
+          schema:
+            type: string
+            pattern: '^\d{22}$'
+        - name: estado
+          in: query
+          required: false
+          description: Filtra por estado.
+          schema:
+            $ref: '#/components/schemas/EstadoInstrumento'
+        - name: desdeEmision
+          in: query
+          required: false
+          description: Emisión desde (el rango por eje no puede superar 360 días).
+          schema:
+            type: string
+            format: date
+        - name: hastaEmision
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: desdeVencimiento
+          in: query
+          required: false
+          description: Vencimiento (fecha de pago) desde.
+          schema:
+            type: string
+            format: date
+        - name: hastaVencimiento
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: numeroCheque
+          in: query
+          required: false
+          description: Número de cheque de la chequera.
+          schema:
+            type: integer
+            format: int32
+            minimum: 1
       responses:
         '200':
           description: Página de echeqs.
@@ -264,11 +475,34 @@ paths:
               $ref: '#/components/schemas/AceptarEcheqRequest'
       responses:
         '200':
-          description: Aceptado (Emitido) o repudiado.
+          description: Aceptado (Emitido) o repudiado (con motivo guardado).
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/EcheqResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs/{idecheq}/certificado:
+    get:
+      tags: [Echeqs]
+      operationId: obtenerCertificado
+      summary: Certificado para ejercer acciones civiles (solo echeqs rechazados)
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      responses:
+        '200':
+          description: CUD determinista + datos del rechazo.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CertificadoResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '404':
           $ref: '#/components/responses/NotFound'
         '422':
@@ -484,6 +718,112 @@ paths:
         '422':
           $ref: '#/components/responses/UnprocessableEntity'
 
+  /api/v1/echeqs/{idecheq}/cesiones:
+    get:
+      tags: [Echeqs]
+      operationId: listarCesiones
+      summary: Cesiones del echeq "no a la orden" para trazabilidad
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      responses:
+        '200':
+          description: Cesiones ordenadas por número.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CesionResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Echeqs]
+      operationId: solicitarCesion
+      summary: Solicita la cesión del echeq a un tercero (solo "no a la orden", en Emitido)
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitarCesionRequest'
+      responses:
+        '201':
+          description: Cesión solicitada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CesionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs/{idecheq}/cesiones/{numero}:
+    get:
+      tags: [Echeqs]
+      operationId: obtenerCesion
+      summary: Obtiene una cesión por su número
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+        - $ref: '#/components/parameters/NumeroCesion'
+      responses:
+        '200':
+          description: Cesión encontrada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CesionResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Echeqs]
+      operationId: anularCesion
+      summary: Anulación de una cesión solicitada por el cedente
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+        - $ref: '#/components/parameters/NumeroCesion'
+      responses:
+        '204':
+          description: Cesión anulada.
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
+  /api/v1/echeqs/{idecheq}/cesiones/{numero}/resolucion:
+    post:
+      tags: [Echeqs]
+      operationId: resolverCesion
+      summary: Aceptación o rechazo de la cesión por el cesionario
+      parameters:
+        - $ref: '#/components/parameters/IdEcheq'
+        - $ref: '#/components/parameters/NumeroCesion'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResolverCesionRequest'
+      responses:
+        '200':
+          description: Cesión aceptada o rechazada.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CesionResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/UnprocessableEntity'
+
   /health:
     get:
       tags: [Health]
@@ -552,6 +892,16 @@ components:
         format: int32
         minimum: 1
       example: 1
+    NumeroCesion:
+      name: numero
+      in: path
+      required: true
+      description: Número de la cesión (1-based).
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+      example: 1
     Cuit:
       name: cuit
       in: query
@@ -561,6 +911,15 @@ components:
         type: string
         pattern: '^\d{11}$'
       example: '20123456789'
+    Cbu:
+      name: cbu
+      in: path
+      required: true
+      description: CBU de 22 dígitos con verificadores válidos (entidad + sucursal + cuenta).
+      schema:
+        type: string
+        pattern: '^\d{22}$'
+      example: '0110001300000000000017'
     Page:
       name: page
       in: query
@@ -598,7 +957,9 @@ components:
           schema:
             $ref: '#/components/schemas/ProblemDetail'
     Conflict:
-      description: Conflicto — CMC7/IDECHEQ duplicado con key distinta, misma Idempotency-Key con body distinto, o tope de endosos/pedido pendiente.
+      description: Conflicto — CBU/CMC7/IDECHEQ duplicado con key distinta, misma Idempotency-Key con body distinto, chequera sin números disponibles, tope de endosos/cesiones o pedido/cesión pendiente.
+    UnprocessableEntity:
+      description: Transición de estado inválida (ej. Anulado → Compensado), endoso de echeq 'No a la orden', depósito fuera de la ventana de presentación (30 días), o motivo de rechazo ausente/incluido según estado.
       content:
         application/problem+json:
           schema:
@@ -628,6 +989,101 @@ components:
             $ref: '#/components/schemas/ProblemDetail'
 
   schemas:
+    CrearCuentaRequest:
+      type: object
+      required: [cbu, cuitTitular, nombreTitular, moneda]
+      properties:
+        cbu:
+          type: string
+          pattern: '^\d{22}$'
+          description: CBU con verificadores válidos.
+          example: '0110001300000000000017'
+        cuitTitular:
+          $ref: '#/components/schemas/Cuit'
+        nombreTitular:
+          type: string
+          maxLength: 120
+          example: 'Alfa S.R.L.'
+        moneda:
+          $ref: '#/components/schemas/Moneda'
+
+    CuentaResponse:
+      type: object
+      properties:
+        cbu:
+          type: string
+          pattern: '^\d{22}$'
+          description: El CBU de 22 dígitos (identificador de negocio).
+          example: '0110001300000000000017'
+        banco:
+          type: string
+          example: '011'
+        sucursal:
+          type: string
+          example: '0001'
+        numeroCuenta:
+          type: string
+          example: '0000000000001'
+        cuitTitular:
+          $ref: '#/components/schemas/Cuit'
+        nombreTitular:
+          type: string
+          example: 'Alfa S.R.L.'
+        moneda:
+          $ref: '#/components/schemas/Moneda'
+        fechaCreacion:
+          type: string
+          format: date-time
+
+    ChequeraResponse:
+      type: object
+      properties:
+        numero:
+          type: integer
+          format: int32
+          description: Número de chequera (secuencial por cuenta).
+          example: 1
+        cantidadTotal:
+          type: integer
+          format: int32
+          description: Números por chequera (50).
+          example: 50
+        proximoNumero:
+          type: integer
+          format: int32
+          description: Próximo número a reservar.
+          example: 8
+        disponibles:
+          type: integer
+          format: int32
+          example: 43
+        estado:
+          type: string
+          enum: [Vigente, Agotada]
+        fechaSolicitud:
+          type: string
+          format: date-time
+        fechaHabilitacion:
+          type: string
+          format: date-time
+
+    TitularResponse:
+      type: object
+      properties:
+        tipoDoc:
+          type: string
+          enum: [CUIT, CUIL, CDI]
+        numero:
+          type: string
+          pattern: '^\d{11}$'
+        nombre:
+          type: string
+          nullable: true
+          description: Nombre del titular si tiene cuenta; null si no está bancarizado.
+          example: 'Alfa S.R.L.'
+        bancarizado:
+          type: boolean
+
     CrearChequeFisicoRequest:
       type: object
       required: [cmc7, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision, fechaVencimiento]
@@ -663,13 +1119,51 @@ components:
 
     CrearEcheqRequest:
       type: object
-      required: [cmc7, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision, fechaVencimiento]
+      required: [cbuEmisor, caracter, tipoDocBeneficiario, nombreLibrador, nombreBeneficiario, cuitLibrador, cuitBeneficiario, monto, moneda, fechaEmision, fechaVencimiento]
       properties:
-        cmc7:
+        cbuEmisor:
           type: string
-          pattern: '^\d{30}$'
-          description: CMC7 completo del echeq (banco+sucursal+código postal+número de cheque+cuenta). Único.
-          example: '011000114250000123400001234567'
+          pattern: '^\d{22}$'
+          description: CBU de la cuenta de débito (con chequera vigente). El librador debe ser su titular y la moneda debe coincidir.
+          example: '0110001300000000000017'
+        caracter:
+          type: string
+          enum: [AlaOrden, NoAlaOrden]
+          description: Solo los 'A la orden' se endosan; los 'No a la orden' se transmiten por cesión.
+          example: AlaOrden
+        tipoDocBeneficiario:
+          type: string
+          enum: [CUIT, CUIL, CDI]
+          description: Tipo de documento del beneficiario (11 dígitos con verificador).
+          example: CUIT
+        nombreLibrador:
+          type: string
+          maxLength: 120
+          example: 'Alfa S.R.L.'
+        nombreBeneficiario:
+          type: string
+          maxLength: 120
+          example: 'Beta S.A.'
+        concepto:
+          type: string
+          maxLength: 60
+          nullable: true
+          example: 'Pago a proveedores'
+        motivo:
+          type: string
+          maxLength: 280
+          nullable: true
+        referencia:
+          type: string
+          maxLength: 60
+          nullable: true
+          example: 'FAC-123'
+        emailNotificacion:
+          type: string
+          maxLength: 160
+          nullable: true
+          description: Email de aviso al beneficiario.
+          example: 'cobros@demo.local'
         cuitLibrador:
           $ref: '#/components/schemas/Cuit'
         cuitBeneficiario:
@@ -711,7 +1205,12 @@ components:
       properties:
         aceptada:
           type: boolean
-          description: true = acepta (pasa a Emitido); false = repudia (terminal).
+          description: true = acepta (pasa a Emitido); false = repudia (terminal, exige motivo).
+        motivo:
+          type: string
+          maxLength: 280
+          nullable: true
+          description: Obligatorio si aceptada = false; prohibido si aceptada = true.
 
     ProponerEndosoRequest:
       type: object
@@ -753,6 +1252,97 @@ components:
         cuitResolutor:
           $ref: '#/components/schemas/Cuit'
           description: Debe ser el tenedor actual.
+
+    SolicitarCesionRequest:
+      type: object
+      required: [cuitCesionario, domicilioCesionario]
+      properties:
+        cuitCesionario:
+          $ref: '#/components/schemas/Cuit'
+          description: Tercero bancarizado, distinto del tenedor actual.
+        domicilioCesionario:
+          type: string
+          maxLength: 200
+
+    ResolverCesionRequest:
+      type: object
+      required: [aceptada, cuitResolutor]
+      properties:
+        aceptada:
+          type: boolean
+          description: true = acepta (la tenencia pasa al cesionario); false = rechaza.
+        cuitResolutor:
+          $ref: '#/components/schemas/Cuit'
+          description: Debe ser el cesionario.
+
+    CesionResponse:
+      type: object
+      properties:
+        numero:
+          type: integer
+          format: int32
+          example: 1
+        cuitCedente:
+          $ref: '#/components/schemas/Cuit'
+        cuitCesionario:
+          $ref: '#/components/schemas/Cuit'
+        domicilioCesionario:
+          type: string
+          maxLength: 200
+        estado:
+          type: string
+          enum: [Solicitada, Aceptada, Rechazada, Anulada]
+        fechaCreacion:
+          type: string
+          format: date-time
+
+    CertificadoResponse:
+      type: object
+      description: Certificado para acciones civiles (CUD determinista, no se persiste).
+      properties:
+        cud:
+          type: string
+          pattern: '^[0-9A-F]{64}$'
+          description: Clave Única Digital (SHA-256 de los datos del echeq).
+        codigoVisualizacion:
+          type: string
+          description: Primeros 12 del CUD (estilo CAC de echeq.com.ar).
+          example: 'A1B2C3D4E5F6'
+        idEcheq:
+          type: string
+          pattern: '^[A-Z]{11}$'
+        cmc7:
+          type: string
+          pattern: '^\d{30}$'
+        estado:
+          type: string
+          enum: [Rechazado]
+        motivoRechazo:
+          allOf:
+            - $ref: '#/components/schemas/MotivoRechazo'
+          nullable: true
+        cuitLibrador:
+          $ref: '#/components/schemas/Cuit'
+        nombreLibrador:
+          type: string
+        cuitBeneficiario:
+          $ref: '#/components/schemas/Cuit'
+        nombreBeneficiario:
+          type: string
+        monto:
+          $ref: '#/components/schemas/Monto'
+        moneda:
+          $ref: '#/components/schemas/Moneda'
+        fechaEmision:
+          type: string
+          format: date
+        fechaVencimiento:
+          type: string
+          format: date
+        fechaRechazo:
+          type: string
+          format: date-time
+          nullable: true
 
     EndosoResponse:
       type: object
@@ -860,10 +1450,57 @@ components:
         tipo:
           type: string
           enum: [Echeq]
+        cbuEmisor:
+          type: string
+          pattern: '^\d{22}$'
+          description: CBU de la cuenta de débito.
+          example: '0110001300000000000017'
+        numeroChequera:
+          type: integer
+          format: int32
+          description: Número de la e-chequera usada (secuencial por cuenta).
+          example: 1
+        numeroCheque:
+          type: integer
+          format: int32
+          description: Número de cheque reservado de la chequera (1-50).
+          example: 7
+        caracter:
+          type: string
+          enum: [AlaOrden, NoAlaOrden]
+          description: Solo los 'A la orden' se endosan.
+          example: AlaOrden
+        modo:
+          type: string
+          enum: [Cruzado]
+          description: Siempre cruzado (solo depósito en cuenta).
+          example: Cruzado
+        tipoDocBeneficiario:
+          type: string
+          enum: [CUIT, CUIL, CDI]
+          example: CUIT
+        nombreLibrador:
+          type: string
+          example: 'Alfa S.R.L.'
+        nombreBeneficiario:
+          type: string
+          example: 'Beta S.A.'
+        concepto:
+          type: string
+          nullable: true
+        motivo:
+          type: string
+          nullable: true
+        referencia:
+          type: string
+          nullable: true
+        emailNotificacion:
+          type: string
+          nullable: true
         cmc7:
           type: string
           pattern: '^\d{30}$'
-          description: CMC7 completo del echeq. Único.
+          description: CMC7 completo del echeq, generado por el simulador. Único.
           example: '011000114250000123400001234567'
         desgloseCmc7:
           type: object
@@ -908,6 +1545,10 @@ components:
           allOf:
             - $ref: '#/components/schemas/MotivoRechazo'
           nullable: true
+        motivoRepudio:
+          type: string
+          nullable: true
+          description: Motivo informado por el beneficiario al repudiar.
         cantidadEndosos:
           type: integer
           format: int32
@@ -962,8 +1603,8 @@ components:
 
     EstadoInstrumento:
       type: string
-      enum: [Pendiente, Emitido, Depositado, Compensado, Rechazado, Anulado, Pagado, Repudiado, EnCustodia]
-      description: Pendiente, Repudiado y EnCustodia son exclusivos de echeqs.
+      enum: [Pendiente, Emitido, Depositado, Compensado, Rechazado, Anulado, Pagado, Repudiado, EnCustodia, Caducado]
+      description: Pendiente, Repudiado y EnCustodia son exclusivos de echeqs. Caducado = vencido el plazo de presentación (30 días).
 
     MotivoRechazo:
       type: integer

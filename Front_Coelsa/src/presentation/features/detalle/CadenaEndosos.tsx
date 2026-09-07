@@ -29,12 +29,14 @@ const APARIENCIA_ENDOSO: Record<EstadoEndoso, string> = {
 
 interface Props {
   idecheq: string;
-  /** Solo en Emitido se pueden proponer endosos. */
+  /** Solo en Emitido (y a la orden) se pueden proponer endosos. */
   puedeEndosar: boolean;
+  /** Echeq 'No a la orden': informa que va por cesión en vez del formulario. */
+  soloCesion?: boolean;
   puerto?: IPuertoEndosos;
 }
 
-export default function CadenaEndosos({ idecheq, puedeEndosar, puerto }: Props) {
+export default function CadenaEndosos({ idecheq, puedeEndosar, soloCesion, puerto }: Props) {
   const cadena = useEndosos(idecheq, puerto);
   const proponer = useProponerEndoso(puerto);
   const resolver = useResolverEndoso(puerto);
@@ -101,6 +103,12 @@ export default function CadenaEndosos({ idecheq, puedeEndosar, puerto }: Props) 
           Solo el endosatario puede admitir o repudiar cada endoso propuesto.
         </p>
       </div>
+
+      {soloCesion && (
+        <p className="text-sm text-muted-foreground">
+          Echeq 'No a la orden': no admite endosos, se transmite por cesión.
+        </p>
+      )}
 
       {puedeEndosar && (
         <form onSubmit={alProponer} className="flex flex-col gap-2" noValidate>

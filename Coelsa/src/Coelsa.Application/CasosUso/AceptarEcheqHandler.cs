@@ -7,8 +7,9 @@ using Coelsa.Domain.Entidades;
 namespace Coelsa.Application.CasosUso;
 
 /// <summary>
-/// Aceptación o repudio del beneficiario sobre un echeq pendiente (SPEC Fase A).
-/// Aceptar lo pone en circulación (Emitido); repudiar lo deja terminal (Repudiado).
+/// Aceptación o repudio del beneficiario sobre un echeq pendiente (SPEC Fase A + D2).
+/// Aceptar lo pone en circulación (Emitido); repudiar lo deja terminal (Repudiado)
+/// y exige el motivo del beneficiario.
 /// </summary>
 public sealed class AceptarEcheqHandler(
     IInstrumentoRepository<Echeq> repository,
@@ -26,11 +27,16 @@ public sealed class AceptarEcheqHandler(
 
         if (request.Aceptada)
         {
+            if (!string.IsNullOrWhiteSpace(request.Motivo))
+            {
+                throw new ValidacionException("La aceptación no admite motivo (solo el repudio lo exige).");
+            }
+
             echeq.Aceptar();
         }
         else
         {
-            echeq.Repudiar();
+            echeq.Repudiar(request.Motivo);
         }
 
         await _unitOfWork.SaveChangesAsync(ct);

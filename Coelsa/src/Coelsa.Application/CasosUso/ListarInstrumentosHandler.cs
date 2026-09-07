@@ -64,13 +64,3 @@ public sealed class ListarChequesHandler(
     protected override string PrefijoClaveCache => "coelsa:cheques";
     protected override ChequeResponse Mapear(ChequeFisico entidad) => entidad.AResponse();
 }
-
-public sealed class ListarEcheqsHandler(
-    IInstrumentoRepository<Echeq> repository,
-    IGestorCacheConsultas cache)
-    : ListarInstrumentosHandler<Echeq, EcheqResponse>(repository, cache)
-{
-    protected override TipoInstrumento Tipo => TipoInstrumento.Echeq;
-    protected override string PrefijoClaveCache => "coelsa:echeqs";
-    protected override EcheqResponse Mapear(Echeq entidad) => entidad.AResponse();
-}

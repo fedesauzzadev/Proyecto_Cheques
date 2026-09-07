@@ -18,6 +18,8 @@ public class TransicionesEstadoTests
     [InlineData(EstadoInstrumento.Emitido, EstadoInstrumento.EnCustodia)]
     [InlineData(EstadoInstrumento.EnCustodia, EstadoInstrumento.Emitido)]
     [InlineData(EstadoInstrumento.EnCustodia, EstadoInstrumento.Depositado)]
+    [InlineData(EstadoInstrumento.Emitido, EstadoInstrumento.Caducado)]
+    [InlineData(EstadoInstrumento.EnCustodia, EstadoInstrumento.Caducado)]
     public void EsValida_AceptaTransicionesDelDiagrama(EstadoInstrumento desde, EstadoInstrumento hacia)
     {
         Assert.True(TransicionesEstado.EsValida(desde, hacia));
@@ -49,5 +51,6 @@ public class TransicionesEstadoTests
         Assert.Empty(TransicionesEstado.DestinosDesde(EstadoInstrumento.Rechazado));
         Assert.Empty(TransicionesEstado.DestinosDesde(EstadoInstrumento.Pagado));
         Assert.Empty(TransicionesEstado.DestinosDesde(EstadoInstrumento.Repudiado));
+        Assert.Empty(TransicionesEstado.DestinosDesde(EstadoInstrumento.Caducado));
     }
 }
